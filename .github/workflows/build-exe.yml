@@ -78,3 +78,27 @@ jobs:
         with:
           name: SICAM-windows
           path: dist/SICAM.exe
+
+  # -------------------------------------------------------------- release
+  # Crea (o actualiza) un GitHub Release y adjunta SICAM.exe. Solo corre
+  # cuando el flujo se dispara por un tag `v*`, que es lo que usamos como
+  # versión pública. El dispatch manual sigue dejando el artefacto en Actions.
+  release:
+    runs-on: ubuntu-latest
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write # necesario para crear el release y subir el archivo
+    steps:
+      - name: Descargar artefacto
+        uses: actions/download-artifact@v4
+        with:
+          name: SICAM-windows
+          path: dist
+
+      - name: Crear release y adjuntar SICAM.exe
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: dist/SICAM.exe
+          generate_release_notes: true
