@@ -5,6 +5,8 @@ línea acumulada oscura, cortes 80/20 y metas punteadas).
 """
 from __future__ import annotations
 
+import math
+
 from PySide6.QtCore import QPointF, QRectF, Qt
 from PySide6.QtGui import QColor, QFont, QFontMetrics, QPainter, QPen
 from PySide6.QtWidgets import QWidget
@@ -332,3 +334,204 @@ class TendenciaWidget(QWidget):
                 p.drawText(QRectF(X(i) - 40, pt + ch + 8, 80, 14),
                            Qt.AlignmentFlag.AlignHCenter, d["etiqueta"])
                 p.restore()
+
+
+class GaugeWidget(QWidget):
+    """Medidor circular de 270° (réplica de drawGauge de la maqueta HTML).
+
+    Dibuja solo el arco de zonas, la aguja y el punto central; el valor
+    numérico y la etiqueta van en el card que lo contiene.
+    """
+
+    ROJO = QColor("#EF4444")
+    AMBAR = QColor("#F59E0B")
+    VERDE = QColor("#22C55E")
+    AGUJA = QColor("#0F172A")
+
+    def __init__(self):
+        super().__init__()
+        self.setMinimumHeight(150)
+        self._u: dict | None = None
+        self._valor: float | None = None
+        self._nivel = "ok"
+
+    def set_datos(self, u, valor, nivel: str = "ok"):
+        self._u = u
+        self._valor = valor
+        self._nivel = nivel
+        self.update()
+
+    @staticmethod
+    def _ang_qt(v: float, min_: float, max_: float) -> int:
+        """Valor de datos -> ángulo Qt en 1/16 de grado (270°, hueco abajo)."""
+        frac = (v - min_) / (max_ - min_)
+        deg = 135.0 + frac * 270.0          # grados de la maqueta (a0=0.75π)
+        return int(round(-deg * 16))
+
+    def paintEvent(self, event):
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        w, h = self.width(), self.height()
+        p.fillRect(self.rect(), QColor(COLORS["surface"]))
+
+        u = self._u
+        valor = self._valor
+        if u is None or valor is None or u["max_escala"] <= u["min_escala"]:
+            self._pintar_sin_datos(p, w, h)
+            return
+
+        min_, max_ = u["min_escala"], u["max_escala"]
+        cx, cy = w / 2, h * 0.58
+        R = min(w * 0.42, h * 0.62)
+        rect = QRectF(cx - R, cy - R, 2 * R, 2 * R)
+
+        zonas = [
+            {"from": min_, "to": u["a_lo"], "color": self.ROJO},
+            {"from": u["a_lo"], "to": u["ok_lo"], "color": self.AMBAR},
+            {"from": u["ok_lo"], "to": u["ok_hi"], "color": self.VERDE},
+            {"from": u["ok_hi"], "to": u["a_hi"], "color": self.AMBAR},
+            {"from": u["a_hi"], "to": max_, "color": self.ROJO},
+        ]
+        for z in zonas:
+            if z["to"] <= z["from"] + 0.001:
+                continue
+            color = QColor(z["color"])
+            color.setAlpha(217)             # ~0.85 como la maqueta
+            p.setPen(QPen(color, 11, Qt.PenStyle.SolidLine, Qt.PenCapStyle.FlatCap))
+            inicio = self._ang_qt(z["from"], min_, max_)
+            span = self._ang_qt(z["to"], min_, max_) - inicio
+            p.drawArc(rect, inicio, span)
+
+        # aguja hacia el valor (clamp al rango)
+        frac = min(1.0, max(0.0, (valor - min_) / (max_ - min_)))
+        av = (135.0 + frac * 270.0) * math.pi / 180.0
+        p.setPen(QPen(self.AGUJA, 3, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap))
+        p.drawLine(QPointF(cx, cy),
+                   QPointF(cx + math.cos(av) * (R - 14), cy + math.sin(av) * (R - 14)))
+        p.setPen(Qt.PenStyle.NoPen)
+        p.setBrush(self.AGUJA)
+        p.drawEllipse(QPointF(cx, cy), 5, 5)
+
+    def _pintar_sin_datos(self, p: QPainter, w: int, h: int):
+        cx, cy = w / 2, h * 0.58
+        R = min(w * 0.42, h * 0.62)
+        rect = QRectF(cx - R, cy - R, 2 * R, 2 * R)
+        p.setPen(QPen(QColor("#E2E8F0"), 11, Qt.PenStyle.SolidLine, Qt.PenCapStyle.FlatCap))
+        p.drawArc(rect, int(-135 * 16), int(-270 * 16))
+        p.setPen(GRIS)
+        p.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "Sin datos")
+
+
+class LineaEnVivoWidget(QWidget):
+    """Gráfico de línea en vivo (réplica de drawIotChart, generalizado a cualquier variable)."""
+
+    def __init__(self):
+        super().__init__()
+        self.setMinimumHeight(230)
+        self._historial: list[dict] = []
+        self._u: dict | None = None
+
+    def set_datos(self, historial: list[dict], u):
+        self._historial = historial or []
+        self._u = u
+        self.update()
+
+    @staticmethod
+    def _fmt(v: float) -> str:
+        f = float(v)
+        return str(int(f)) if f.is_integer() else f"{f:.1f}"
+
+    def paintEvent(self, event):
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        w, h = self.width(), self.height()
+        p.fillRect(self.rect(), QColor(COLORS["surface"]))
+
+        u = self._u
+        if u is None or u["max_escala"] <= u["min_escala"]:
+            p.setPen(GRIS)
+            p.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "Sin lecturas aún")
+            return
+
+        min_, max_ = u["min_escala"], u["max_escala"]
+        a_lo, a_hi = u["a_lo"], u["a_hi"]
+        ok_lo, ok_hi = u["ok_lo"], u["ok_hi"]
+        tiene_lo = a_lo > min_
+
+        padL, padR, padT, padB = 40, 14, 14, 24
+        cw, ch = w - padL - padR, h - padT - padB
+        fondo = padT + ch
+
+        def y(v):
+            return padT + ch - (v - min_) / (max_ - min_) * ch
+
+        fuente = QFont(self.font())
+        fuente.setPointSizeF(8.5)
+        p.setFont(fuente)
+
+        # bandas de zona
+        rojo = QColor(239, 68, 68, 18)          # rgba(239,68,68,.07)
+        verde = QColor(34, 197, 94, 18)         # rgba(34,197,94,.07)
+        p.fillRect(QRectF(padL, padT, cw, max(0.0, y(a_hi) - padT)), rojo)
+        if tiene_lo:
+            p.fillRect(QRectF(padL, y(a_lo), cw, max(0.0, fondo - y(a_lo))), rojo)
+        p.fillRect(QRectF(padL, y(ok_hi), cw, max(0.0, y(ok_lo) - y(ok_hi))), verde)
+
+        # líneas punteadas de umbral
+        p.setPen(QPen(QColor("#22C55E"), 1.3, Qt.PenStyle.DashLine))
+        p.drawLine(padL, y(ok_hi), padL + cw, y(ok_hi))
+        p.setPen(QPen(QColor("#15803D")))
+        p.drawText(QRectF(0, y(ok_hi) - 7, padL - 6, 14),
+                   Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
+                   f"A {self._fmt(ok_hi)}")
+
+        p.setPen(QPen(QColor("#EF4444"), 1.3, Qt.PenStyle.DashLine))
+        p.drawLine(padL, y(a_hi), padL + cw, y(a_hi))
+        p.setPen(QPen(QColor("#B91C1C")))
+        p.drawText(QRectF(0, y(a_hi) - 7, padL - 6, 14),
+                   Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
+                   f"C {self._fmt(a_hi)}")
+
+        if tiene_lo:
+            p.setPen(QPen(QColor("#EF4444"), 1.3, Qt.PenStyle.DashLine))
+            p.drawLine(padL, y(a_lo), padL + cw, y(a_lo))
+            p.setPen(QPen(QColor("#B91C1C")))
+            p.drawText(QRectF(0, y(a_lo) - 7, padL - 6, 14),
+                       Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
+                       f"C {self._fmt(a_lo)}")
+
+        # serie (últimos 60 puntos)
+        hist = self._historial[:60]
+        n = len(hist)
+
+        def X(i):
+            return padL + (i / 59.0) * cw
+
+        teal = QColor("#0D9488")
+        rojo_p = QColor("#EF4444")
+        ambar_p = QColor("#F59E0B")
+        if n > 1:
+            pen = QPen(teal, 2)
+            pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+            p.setPen(pen)
+            for i in range(1, n):
+                p.drawLine(QPointF(X(i - 1), y(hist[i - 1]["valor"])),
+                           QPointF(X(i), y(hist[i]["valor"])))
+        for i, d in enumerate(hist):
+            v = d["valor"]
+            if v > a_hi or (tiene_lo and v < a_lo):
+                color, radio = rojo_p, 3.4
+            elif v < ok_lo or v > ok_hi:
+                color, radio = ambar_p, 2.8
+            else:
+                color, radio = teal, 2.8
+            p.setPen(Qt.PenStyle.NoPen)
+            p.setBrush(color)
+            p.drawEllipse(QPointF(X(i), y(v)), radio, radio)
+
+        # ejes
+        p.setPen(QPen(QColor("#94A3B8")))
+        p.drawText(QRectF(padL + 2, fondo + 4, 120, 14),
+                   Qt.AlignmentFlag.AlignLeft, "hace 60 min")
+        p.drawText(QRectF(padL + cw - 122, fondo + 4, 120, 14),
+                   Qt.AlignmentFlag.AlignRight, "ahora")

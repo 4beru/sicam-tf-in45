@@ -10,9 +10,9 @@ import socket
 import threading
 from pathlib import Path
 
-from flask import Flask, abort, request
+from flask import Flask, abort, jsonify, request
 
-from ..core import checklists, db
+from ..core import checklists, db, iot
 from ..core.db import TURNOS
 
 PUERTO = 8080
@@ -314,6 +314,61 @@ def crear_app() -> Flask:
         finally:
             conn.close()
         return _html_exito(maquina, res)
+
+    # ---- Fase 4a: endpoints IoT para el ESP32 ----
+    # Ejemplo desde el ESP32 (publica una lectura por HTTP JSON):
+    #   requests.post("http://IP-del-PC:8080/iot/lectura",
+    #                 json={"maquina": "RECT-05", "variable": "vibracion", "valor": 5.9})
+    #   # o con curl:
+    #   # curl -X POST http://IP-del-PC:8080/iot/lectura -H 'Content-Type: application/json' \
+    #   #      -d '{"maquina":"RECT-05","variable":"vibracion","valor":5.9}'
+
+    @app.post("/iot/lectura")
+    def iot_lectura():
+        datos = request.get_json(silent=True)
+        if not isinstance(datos, dict):
+            return jsonify({"error": "cuerpo JSON inválido o ausente"}), 400
+
+        maquina = datos.get("maquina")
+        variable = datos.get("variable")
+        valor = datos.get("valor")
+        nivel = datos.get("nivel")
+
+        conn = db.conectar()
+        try:
+            if not maquina or not conn.execute(
+                    "SELECT 1 FROM maquinas WHERE codigo = ?", (maquina,)).fetchone():
+                return jsonify({"error": f"máquina desconocida: {maquina}"}), 400
+
+            # Caso B: evento de defecto (nivel D), variable libre (p. ej. "etiqueta")
+            if nivel == "D":
+                if valor is None or isinstance(valor, bool) or not isinstance(valor, (int, float)):
+                    return jsonify({"error": "nivel D requiere un valor numérico"}), 400
+                var = variable or "defecto"
+                id_ = iot.registrar_alerta(
+                    conn, maquina, var, "D",
+                    f"Sensor {var}: prenda no conforme detectada (alerta D). Inspeccionar proceso.",
+                    float(valor))
+                return jsonify({"id": id_, "nivel": "D", "alerta": {"id": id_, "nivel": "D"}})
+
+            # Caso A: lectura continua de una variable
+            if variable not in iot.VARIABLES:
+                return jsonify({"error": f"variable inválida: {variable}"}), 400
+            if valor is None or isinstance(valor, bool) or not isinstance(valor, (int, float)):
+                return jsonify({"error": "valor debe ser un número"}), 400
+
+            r = iot.registrar_lectura(conn, maquina, variable, float(valor), origen="esp32")
+            return jsonify({"id": r["id"], "nivel": r["nivel"], "alerta": r["alerta"]})
+        finally:
+            conn.close()
+
+    @app.get("/iot/estado")
+    def iot_estado():
+        conn = db.conectar()
+        try:
+            return jsonify({"maquinas": iot.ultimas_por_maquina(conn)})
+        finally:
+            conn.close()
 
     return app
 

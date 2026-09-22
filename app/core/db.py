@@ -150,6 +150,42 @@ CREATE TABLE IF NOT EXISTS plan_ejecuciones (
     creada_en   TEXT DEFAULT (datetime('now', 'localtime'))
 );
 CREATE INDEX IF NOT EXISTS idx_exe_maquina ON plan_ejecuciones (maquina, actividad);
+
+-- ---- fase 4: monitor IoT (Fig. 47) ----
+CREATE TABLE IF NOT EXISTS iot_umbrales (
+    variable   TEXT PRIMARY KEY,
+    unidad     TEXT NOT NULL,
+    min_escala REAL NOT NULL,
+    max_escala REAL NOT NULL,
+    ok_lo      REAL NOT NULL,
+    ok_hi      REAL NOT NULL,
+    a_lo       REAL NOT NULL,
+    a_hi       REAL NOT NULL,
+    paso_sim   REAL NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS iot_lecturas (
+    id        INTEGER PRIMARY KEY AUTOINCREMENT,
+    maquina   TEXT NOT NULL,
+    variable  TEXT NOT NULL,
+    valor     REAL NOT NULL,
+    nivel     TEXT NOT NULL,
+    origen    TEXT NOT NULL DEFAULT 'sim',
+    ts        TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+);
+CREATE INDEX IF NOT EXISTS idx_iot_maq_var ON iot_lecturas (maquina, variable, id);
+
+CREATE TABLE IF NOT EXISTS iot_alertas (
+    id        INTEGER PRIMARY KEY AUTOINCREMENT,
+    maquina   TEXT NOT NULL,
+    variable  TEXT NOT NULL,
+    nivel     TEXT NOT NULL,
+    mensaje   TEXT NOT NULL,
+    valor     REAL NOT NULL,
+    ts        TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+    atendida  INTEGER NOT NULL DEFAULT 0,
+    tarjeta_id INTEGER
+);
 """
 
 
@@ -185,6 +221,7 @@ def vaciar(conn: sqlite3.Connection) -> None:
         "operarios", "maquinas", "importaciones",
         "checklist_items", "checklists", "tarjetas_tpm", "plantilla_checklist",
         "plan_ejecuciones",
+        "iot_lecturas", "iot_alertas", "iot_umbrales",
     ]
     with conn:
         for t in tablas:
@@ -195,6 +232,7 @@ def contar(conn: sqlite3.Connection) -> dict[str, int]:
     out = {}
     for t in ("maquinas", "operarios", "produccion", "no_conformidades",
               "frecuencias", "metas", "importaciones",
-              "checklists", "tarjetas_tpm", "plan_ejecuciones"):
+              "checklists", "tarjetas_tpm", "plan_ejecuciones",
+              "iot_lecturas", "iot_alertas", "iot_umbrales"):
         out[t] = conn.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0]
     return out

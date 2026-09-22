@@ -165,7 +165,11 @@ def firma_datos(conn: sqlite3.Connection) -> tuple:
         UNION ALL SELECT 'chk',  COUNT(*), COALESCE(MAX(id),0) FROM checklists
         UNION ALL SELECT 'tarj', COUNT(*), COALESCE(MAX(id),0) FROM tarjetas_tpm
         UNION ALL SELECT 'exe',  COUNT(*), COALESCE(MAX(id),0) FROM plan_ejecuciones
+        UNION ALL SELECT 'iotl', COUNT(*), COALESCE(MAX(id),0) FROM iot_lecturas
+        UNION ALL SELECT 'iota', COUNT(*), COALESCE(MAX(id),0) FROM iot_alertas
     """).fetchall()
     abiertas = conn.execute(
         "SELECT COUNT(*) FROM tarjetas_tpm WHERE estado != 'cerrada'").fetchone()[0]
-    return tuple(tuple(f) for f in filas) + (abiertas,)
+    alertas_iot = conn.execute(
+        "SELECT COUNT(*) FROM iot_alertas WHERE atendida = 0").fetchone()[0]
+    return tuple(tuple(f) for f in filas) + (abiertas, alertas_iot)

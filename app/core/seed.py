@@ -203,11 +203,22 @@ def siembra(conn: sqlite3.Connection, reset: bool = False) -> dict[str, int]:
             filas_nc,
         )
 
+    sembrar_fase4(conn)
+
     return {
         "produccion": len(filas_prod),
         "no_conformidades": len(filas_nc),
         "prendas_nc": sum(f[7] for f in filas_nc),
     } | sembrar_fase2(conn) | sembrar_fase3(conn)
+
+
+def sembrar_fase4(conn: sqlite3.Connection) -> None:
+    """Umbrales IoT (Fig. 47) y 60 lecturas de historial por máquina."""
+    from . import iot
+
+    iot.sembrar_umbrales(conn)
+    for codigo, *_ in MAQUINAS:
+        iot.generar_historial(conn, codigo, n=60)
 
 
 def sembrar_fase3(conn: sqlite3.Connection) -> dict[str, int]:

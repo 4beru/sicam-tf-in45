@@ -10,12 +10,13 @@ from PySide6.QtWidgets import (
     QVBoxLayout, QWidget,
 )
 
-from ..core import db, queries
+from ..core import db, iot, queries
 from ..web.servidor import ServidorLAN
 from . import icons
 from .checklists_page import ChecklistsPage
 from .dashboard import DashboardPage
 from .datos_page import DatosPage
+from .iot_page import IotPage
 from .maquinas_page import MaquinasPage
 from .no_conformidades import NoConformidadesPage
 from .plan_page import PlanPage
@@ -28,6 +29,7 @@ from .widgets import Toast
 NAV = [
     # (id, sección, título, icono)
     ("dashboard", "Monitoreo",  "Dashboard",           "dashboard"),
+    ("iot",       "Monitoreo",  "Monitor IoT",         "activity"),
     ("nc",        "Operación",  "No conformidades",    "nc"),
     ("prod",      "Operación",  "Producción diaria",   "package"),
     ("chk",       "Operación",  "Checklists",          "checklist"),
@@ -151,6 +153,7 @@ class Shell(QMainWindow):
         self.servidor = ServidorLAN()
         self.paginas: dict[str, QWidget] = {
             "dashboard": DashboardPage(conn, self),
+            "iot": IotPage(conn, self),
             "nc": NoConformidadesPage(conn, self),
             "prod": ProduccionPage(conn, self),
             "chk": ChecklistsPage(conn, self, self.servidor),
@@ -206,18 +209,24 @@ class Shell(QMainWindow):
 
     # ------------------------------------------------ campana
     def actualizar_campana(self):
-        n = self.conn.execute(
+        n_tarjetas = self.conn.execute(
             "SELECT COUNT(*) FROM tarjetas_tpm WHERE estado != 'cerrada'").fetchone()[0]
+        n_alertas = iot.alertas_pendientes(self.conn)
+        n = n_tarjetas + n_alertas
         self.bell.setText(f" {n}" if n else "")
-        self.bell.setToolTip(f"{n} tarjetas TPM abiertas o en atención")
+        self.bell.setToolTip(
+            f"{n} pendientes: {n_tarjetas} tarjetas TPM · {n_alertas} alertas IoT")
 
     def _campana_clic(self):
-        n = self.conn.execute(
+        n_tarjetas = self.conn.execute(
             "SELECT COUNT(*) FROM tarjetas_tpm WHERE estado != 'cerrada'").fetchone()[0]
-        if n:
+        n_alertas = iot.alertas_pendientes(self.conn)
+        if n_tarjetas:
             self.ir_a("tpm")
+        elif n_alertas:
+            self.ir_a("iot")
         else:
-            self.toast("Sin tarjetas pendientes — todo cerrado")
+            self.toast("Sin pendientes — todo cerrado")
 
     # ------------------------------------------------ navegación
     def ir_a(self, pid: str):

@@ -6,7 +6,7 @@ import sqlite3
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
-from ..core import checklists, plan_tpm, queries
+from ..core import checklists, iot, plan_tpm, queries
 from .charts import ParetoWidget, TendenciaWidget
 from .theme import COLORS
 from .widgets import Card, Kpi, fila_kpis, tabla
@@ -86,6 +86,8 @@ class DashboardPage(QWidget):
                 [(causa_top[0].split()[0] + "…", "purple")], causa_top[0][:38]),
             Kpi("Proceso crítico", proceso_top[0], "wrench",
                 [(_num(proceso_top[1]) + " NC", "bad")]),
+            Kpi("Alertas IoT activas", _num(iot.alertas_pendientes(self.conn)), "activity",
+                [("En vivo · simulador", "teal")], "sin atender · Fig. 47"),
         ], self.layout_principal)
 
         # ---------------- gráficos

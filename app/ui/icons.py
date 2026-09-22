@@ -71,6 +71,9 @@ _ICONS: dict[str, str] = {
         '<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/>'
         '<polyline points="16 7 22 7 22 13"/>'
     ),
+    "activity": (
+        '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>'
+    ),
     "user": (
         '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>'
         '<circle cx="12" cy="7" r="4"/>'

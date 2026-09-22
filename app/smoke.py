@@ -49,7 +49,7 @@ def main() -> int:
     servidor.detener()
 
     resultado: dict = {"bd": str(_tmp / "sicam.db"), "semilla": resumen, "paginas": {}}
-    for pid in ("dashboard", "nc", "prod", "chk", "tpm", "maq", "plan", "rep", "datos"):
+    for pid in ("dashboard", "nc", "prod", "chk", "tpm", "maq", "plan", "iot", "rep", "datos"):
         shell.ir_a(pid)
         app.processEvents()
         png = capturas / f"{pid}.png"
@@ -78,6 +78,16 @@ def main() -> int:
         "causa_top_pct": par[0][2],
         "ultimo_mes": tasa[-1]["mes"],
         "tasa_ultimo_mes": tasa[-1]["tasa"],
+    }
+    from .core import iot
+
+    alertas = iot.simular_paso(conn, "RECT-05")
+    resultado["iot"] = {
+        "umbrales": len(iot.umbrales(conn)),
+        "historial_vibracion": len(iot.historial(conn, "RECT-05", "vibracion")),
+        "alertas_pendientes": iot.alertas_pendientes(conn),
+        "alertas_simuladas": len(alertas),
+        "ultimas_por_maquina": len(iot.ultimas_por_maquina(conn)),
     }
     print(json.dumps(resultado, ensure_ascii=False, indent=1))
     conn.close()

@@ -81,3 +81,57 @@ def test_falla_sin_foto_rechazada(client, conn):
 
 def test_health(client):
     assert client.get("/health").data == b"ok"
+
+
+# ---------------------------------------------------------------- IoT (fase 4a)
+
+def test_iot_lectura_continua(client, conn):
+    r = client.post("/iot/lectura", json={
+        "maquina": "RECT-05", "variable": "vibracion", "valor": 5.9})
+    assert r.status_code == 200
+    j = r.get_json()
+    assert j["nivel"] == "C"
+    assert j["alerta"] is not None
+
+    fila = conn.execute(
+        "SELECT * FROM iot_lecturas ORDER BY id DESC LIMIT 1").fetchone()
+    assert fila["origen"] == "esp32"
+    assert (fila["maquina"], fila["variable"]) == ("RECT-05", "vibracion")
+
+
+def test_iot_evento_defecto_nivel_d(client, conn):
+    r = client.post("/iot/lectura", json={
+        "maquina": "ETQ-03", "variable": "etiqueta", "nivel": "D", "valor": 1})
+    assert r.status_code == 200
+    j = r.get_json()
+    assert j["nivel"] == "D"
+    assert j["alerta"]["nivel"] == "D"
+
+    alerta = conn.execute(
+        "SELECT * FROM iot_alertas ORDER BY id DESC LIMIT 1").fetchone()
+    assert alerta is not None
+    assert alerta["nivel"] == "D"
+
+
+def test_iot_maquina_desconocida(client):
+    r = client.post("/iot/lectura", json={
+        "maquina": "NO-EXISTE", "variable": "vibracion", "valor": 5.9})
+    assert r.status_code == 400
+
+
+def test_iot_variable_invalida(client):
+    r = client.post("/iot/lectura", json={
+        "maquina": "RECT-05", "variable": "ruido", "valor": 5.9})
+    assert r.status_code == 400
+
+
+def test_iot_sin_json(client):
+    r = client.post("/iot/lectura", data="esto-no-es-json",
+                    content_type="application/json")
+    assert r.status_code == 400
+
+
+def test_iot_estado(client):
+    r = client.get("/iot/estado")
+    assert r.status_code == 200
+    assert "maquinas" in r.get_json()

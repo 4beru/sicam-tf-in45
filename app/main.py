@@ -31,6 +31,9 @@ def main() -> int:
             seed.sembrar_fase2(conn)
         if conn.execute("SELECT COUNT(*) FROM plan_ejecuciones").fetchone()[0] == 0:
             seed.sembrar_fase3(conn)
+        if (conn.execute("SELECT COUNT(*) FROM iot_umbrales").fetchone()[0] == 0
+                or conn.execute("SELECT COUNT(*) FROM iot_lecturas").fetchone()[0] == 0):
+            seed.sembrar_fase4(conn)
 
     shell = Shell(conn)
     shell.show()
