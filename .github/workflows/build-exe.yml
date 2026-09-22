@@ -21,6 +21,33 @@ jobs:
         with:
           version: "0.8"
 
+      # PySide6 necesita librerías de sistema (EGL/GL/xkb/xcb) para importar
+      # aunque se use la plataforma offscreen. En ubuntu-latest no vienen
+      # instaladas por defecto, por lo que sin este paso pytest falla con
+      # "ImportError: libEGL.so.1: cannot open shared object file".
+      - name: Instalar librerías de sistema para Qt
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libegl1 \
+            libgl1 \
+            libxkbcommon0 \
+            libxkbcommon-x11-0 \
+            libxcb-cursor0 \
+            libxcb-glx0 \
+            libxcb-icccm4 \
+            libxcb-image0 \
+            libxcb-keysyms1 \
+            libxcb-randr0 \
+            libxcb-render-util0 \
+            libxcb-shape0 \
+            libxcb-xfixes0 \
+            libxcb-xinerama0 \
+            libxcb-xkb1 \
+            libdbus-1-3 \
+            libfontconfig1 \
+            libglib2.0-0
+
       # uv incluye el grupo `dev` por defecto (pytest + pyinstaller).
       - name: Instalar dependencias (con dev)
         run: uv sync
