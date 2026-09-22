@@ -135,3 +135,25 @@ def test_iot_estado(client):
     r = client.get("/iot/estado")
     assert r.status_code == 200
     assert "maquinas" in r.get_json()
+
+
+def test_servidor_lan_puerto_ocupado_lanza_oserror():
+    """Un segundo servidor en el mismo puerto debe lanzar OSError (no salir
+    del proceso como hace werkzeug con sys.exit)."""
+    import socket
+
+    from app.web.servidor import ServidorLAN
+
+    sonda = socket.socket()
+    sonda.bind(("127.0.0.1", 0))
+    puerto = sonda.getsockname()[1]
+    sonda.close()
+
+    srv1 = ServidorLAN(puerto)
+    srv1.iniciar()
+    try:
+        srv2 = ServidorLAN(puerto)
+        with pytest.raises(OSError):
+            srv2.iniciar()
+    finally:
+        srv1.detener()

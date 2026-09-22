@@ -408,9 +408,22 @@ class ServidorLAN:
         return f"{self.url_base()}/{maquina}"
 
     def iniciar(self) -> str:
-        """Levanta el servidor; retorna la URL base."""
+        """Levanta el servidor; retorna la URL base.
+
+        Verifica antes el puerto porque werkzeug termina el proceso con
+        sys.exit(1) si no puede enlazar (no lanza OSError), y eso impediría
+        que el shell muestre el aviso amable de puerto ocupado.
+        """
         if self.activo:
             return self.url_base()
+        sonda = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        try:
+            sonda.bind(("0.0.0.0", self.puerto))
+        except OSError:
+            sonda.close()
+            raise
+        sonda.close()
+
         from werkzeug.serving import make_server
 
         self._server = make_server("0.0.0.0", self.puerto, crear_app(), threaded=True)
