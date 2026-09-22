@@ -11,7 +11,7 @@ from PySide6.QtWidgets import (
 from ..core import db, importador, plantilla, seed
 from . import icons
 from .theme import COLORS
-from .widgets import Card, tabla
+from .widgets import Card, tabla, vaciar_layout
 
 
 class DatosPage(QWidget):
@@ -224,8 +224,5 @@ class DatosPage(QWidget):
                   r["estado"]] for r in filas]
         nueva = tabla(["Fecha", "Archivo", "Filas OK", "Con error", "Estado"],
                       datos or [["—", "—", "—", "—", "—"]])
-        while self.card_hist.vbox.count():
-            item = self.card_hist.vbox.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
+        vaciar_layout(self.card_hist.vbox)
         self.card_hist.vbox.addWidget(nueva)

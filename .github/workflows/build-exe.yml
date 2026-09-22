@@ -1,0 +1,53 @@
+# Compila el .exe de Windows de SICAM con PyInstaller.
+#
+# Se dispara manualmente desde la pestaña Actions (workflow_dispatch) o al
+# publicar un tag `v*` (p. ej. v1.0.0).
+name: build-exe
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  # ---------------------------------------------------------------- tests
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.8"
+
+      # uv incluye el grupo `dev` por defecto (pytest + pyinstaller).
+      - name: Instalar dependencias (con dev)
+        run: uv sync
+
+      - name: Ejecutar tests (sin display)
+        run: QT_QPA_PLATFORM=offscreen uv run pytest -q
+
+  # ------------------------------------------------------------- build exe
+  build:
+    runs-on: windows-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          version: "0.8"
+
+      - name: Instalar dependencias (con dev)
+        run: uv sync
+
+      # --windowed evita la consola; --onefile empaqueta todo en un solo exe.
+      - name: Compilar SICAM.exe con PyInstaller
+        run: uv run pyinstaller --noconfirm --clean --onefile --windowed --name SICAM app/main.py
+
+      - name: Publicar artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: SICAM-windows
+          path: dist/SICAM.exe

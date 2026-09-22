@@ -11,6 +11,26 @@ from . import icons
 from .theme import COLORS
 
 
+def vaciar_layout(layout) -> None:
+    """Elimina inmediatamente (shiboken6.delete) todo el contenido de un layout.
+
+    Sustituye al patrón takeAt + deleteLater: con churn constante de
+    refrescos, la eliminación diferida deja ventanas de use-after-free
+    en PySide6 (SIGSEGV / munmap_chunk). La eliminación inmediata cierra
+    esa ventana.
+    """
+    from shiboken6 import delete
+    while layout.count():
+        item = layout.takeAt(0)
+        w = item.widget()
+        if w is not None:
+            delete(w)
+        elif item.layout() is not None:
+            vaciar_layout(item.layout())
+        elif item.spacerItem() is not None:
+            delete(item)
+
+
 def _cls(widget, nombre: str):
     widget.setProperty("cls", nombre)
     return widget
@@ -158,10 +178,18 @@ class Toast(QLabel):
         self._timer.start(3400)
 
 
-def fila_kpis(kpis: list[Kpi], parent_layout: QVBoxLayout):
-    """Agrega una fila de KPIs con separación uniforme."""
-    h = QHBoxLayout()
-    h.setSpacing(12)
-    for k in kpis:
-        h.addWidget(k, 1)
-    parent_layout.addLayout(h)
+def fila_kpis(kpis: list[Kpi], parent_layout: QVBoxLayout, por_fila: int = 3):
+    """Agrega filas de KPIs con separación uniforme, `por_fila` por fila.
+
+    Las filas incompletas se rellenan con stretch para que cada KPI conserve
+    el ancho de su columna (sin estirarse a todo el ancho).
+    """
+    for i in range(0, len(kpis), por_fila):
+        h = QHBoxLayout()
+        h.setSpacing(12)
+        chunk = kpis[i:i + por_fila]
+        for k in chunk:
+            h.addWidget(k, 1)
+        for _ in range(por_fila - len(chunk)):
+            h.addStretch(1)
+        parent_layout.addLayout(h)

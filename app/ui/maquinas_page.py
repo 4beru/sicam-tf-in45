@@ -13,7 +13,7 @@ from ..core import plan_tpm
 from . import icons
 from .charts import SparkBarras
 from .theme import COLORS
-from .widgets import Card
+from .widgets import Card, vaciar_layout
 
 
 def _chip_crit(criticidad: str) -> QLabel:
@@ -77,10 +77,7 @@ class MaquinasPage(QWidget):
             self.sel = maquinas[0]["codigo"]
 
         # ---- lista
-        while self.lista_box.count():
-            item = self.lista_box.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
+        vaciar_layout(self.lista_box)
         for m in maquinas:
             tarjeta = _tarjeta_maquina(m, self.sel == m["codigo"])
             tarjeta.mousePressEvent = (lambda e, c=m["codigo"]: self._seleccionar(c))
@@ -88,15 +85,7 @@ class MaquinasPage(QWidget):
         self.lista_box.addStretch(1)
 
         # ---- detalle
-        while self.detalle.vbox.count():
-            item = self.detalle.vbox.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
-            elif item.layout():
-                while item.layout().count():
-                    sub = item.layout().takeAt(0)
-                    if sub.widget():
-                        sub.widget().deleteLater()
+        vaciar_layout(self.detalle.vbox)
         m = next((x for x in maquinas if x["codigo"] == self.sel), None)
         if m is None:
             self.detalle.vbox.addWidget(QLabel("Sin máquinas registradas."))

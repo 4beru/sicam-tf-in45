@@ -17,7 +17,7 @@ from ..web.servidor import ServidorLAN
 from . import icons
 from .charts import DonutWidget
 from .theme import COLORS
-from .widgets import Card, tabla
+from .widgets import Card, tabla, vaciar_layout
 
 
 def _qr_pixmap(url: str, tam: int = 190) -> QPixmap:
@@ -285,10 +285,7 @@ class ChecklistsPage(QWidget):
         h = QLabel("Doble clic sobre un checklist para ver su detalle y las fotos de evidencia.")
         h.setProperty("cls", "hint")
         self.card_recientes.vbox.addWidget(h)
-        while self.card_recientes.vbox.count():
-            item = self.card_recientes.vbox.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
+        vaciar_layout(self.card_recientes.vbox)
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QScrollArea.Shape.NoFrame)

@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (
 from ..core import checklists
 from . import icons
 from .theme import COLORS
-from .widgets import Card
+from .widgets import Card, vaciar_layout
 
 
 def _abrir_foto(ruta: str):
@@ -211,15 +211,7 @@ class TarjetasPage(QWidget):
             self.shell.refresh_all(excepto="tpm")
 
     def refresh(self):
-        while self.kan_layout.count():
-            item = self.kan_layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
-            elif item.layout():
-                while item.layout().count():
-                    sub = item.layout().takeAt(0)
-                    if sub.widget():
-                        sub.widget().deleteLater()
+        vaciar_layout(self.kan_layout)
 
         por_estado = checklists.tarjetas_por_estado(self.conn)
         for estado, titulo in COLUMNAS:

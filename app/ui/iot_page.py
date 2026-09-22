@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
 from ..core import iot
 from .charts import GaugeWidget, LineaEnVivoWidget
 from .theme import COLORS
-from .widgets import Card, chip
+from .widgets import Card, chip, vaciar_layout
 
 ETIQUETAS = {
     "tension": "Tensión de hilo",
@@ -26,15 +26,6 @@ ETIQUETAS = {
     "temperatura": "Temperatura",
     "vibracion": "Vibración",
 }
-
-
-def _limpiar(layout):
-    while layout.count():
-        item = layout.takeAt(0)
-        if (w := item.widget()) is not None:
-            w.deleteLater()
-        elif item.layout() is not None:
-            _limpiar(item.layout())
 
 
 def _hhmm(ts) -> str:
@@ -261,10 +252,11 @@ class IotPage(QWidget):
                 g["valor"].setText(f"{valor:.{dec}f} {ud['unidad']}")
 
             texto, tipo = _estado_chip(nivel)
-            g["estado"].setText(texto)
-            g["estado"].setProperty("cls", f"chip_{tipo}")
-            g["estado"].style().unpolish(g["estado"])
-            g["estado"].style().polish(g["estado"])
+            if g["estado"].text() != texto:
+                g["estado"].setText(texto)
+                g["estado"].setProperty("cls", f"chip_{tipo}")
+                g["estado"].style().unpolish(g["estado"])
+                g["estado"].style().polish(g["estado"])
 
     def _repintar_chart(self):
         var = self.combo_variable.currentData()
@@ -272,8 +264,12 @@ class IotPage(QWidget):
         self.chart.set_datos(iot.historial(self.conn, self._maquina_actual, var), u.get(var))
 
     def _repintar_alertas(self):
-        _limpiar(self.alert_cuerpo)
         alertas = iot.alertas(self.conn, limite=50)
+        firma = tuple((a["id"], a["atendida"], a["tarjeta_id"]) for a in alertas)
+        if firma == getattr(self, "_firma_alertas", None):
+            return  # nada cambió: no reconstruir widgets
+        self._firma_alertas = firma
+        vaciar_layout(self.alert_cuerpo)
         if not alertas:
             vacio = QLabel("Sin alertas IoT registradas.")
             vacio.setProperty("cls", "muted")

@@ -14,7 +14,7 @@ from ..core import db, queries
 from . import icons
 from .charts import TendenciaWidget
 from .theme import COLORS
-from .widgets import Card, tabla
+from .widgets import Card, tabla, vaciar_layout
 
 DER = Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
 
@@ -97,10 +97,7 @@ class ProduccionPage(QWidget):
             ])
         nueva = tabla(["Fecha", "Proceso", "Turno", "Inspeccionadas", "NC", "Tasa NC"],
                       datos or [["—"] * 6])
-        while self.card_tabla.vbox.count():
-            item = self.card_tabla.vbox.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
+        vaciar_layout(self.card_tabla.vbox)
         self.card_tabla.vbox.addWidget(nueva)
 
         m = queries.metas(self.conn)

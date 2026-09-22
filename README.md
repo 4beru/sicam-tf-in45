@@ -4,7 +4,7 @@ Aplicación de escritorio (PySide6) para **Createl Trading S.A.C.** — trabajo 
 Digitaliza las herramientas del Capítulo III de la tesis (TPM, Poka Yoke, IoT) para
 producir el Capítulo IV de validación con resultados.
 
-> v0.4 — Fase 4a de 4: monitor IoT en vivo (simulador + ingesta ESP32 por HTTP).
+> v1.0 — Fases 1–4 completas: monitor IoT (Fig. 47) + empaquetado .exe (GitHub Actions).
 
 ## Ejecutar
 
@@ -77,7 +77,7 @@ app/
 - [x] **Fase 2** — Checklists móviles (QR + servidor LAN embebido) y tarjetas TPM
 - [x] **Fase 3** — Máquinas + motor de plan TPM (Fig. 42) + reportes PDF
 - [x] **Fase 4a** — Monitor IoT (Fig. 47): gauges en vivo, alertas A/C/D, simulador y ESP32 vía HTTP
-- [ ] **Fase 4b** — Empaquetado `.exe` (PyInstaller + GitHub Actions)
+- [x] **Fase 4b** — Empaquetado `.exe` (PyInstaller + GitHub Actions)
 
 ## Monitor IoT y ESP32
 
@@ -114,5 +114,32 @@ se actualiza; no hay que volver a hacer clic en el módulo.
 
 ## Notas de packaging
 
-Nuitka **no** compila cruzado Linux → Windows. El `.exe` se generará con PyInstaller
-en un runner `windows-latest` de GitHub Actions (flujo pensado para la fase 4).
+El `.exe` de Windows se compila con **PyInstaller** en GitHub Actions (runner
+`windows-latest`), no localmente. Nuitka **no** compila cruzado Linux → Windows,
+por eso el build vive en CI.
+
+**Disparar el build**
+
+```bash
+gh workflow run build-exe          # desde el repo
+# o en GitHub: pestaña Actions → build-exe → Run workflow
+```
+
+También se dispara automáticamente al publicar un tag `v*` (p. ej. `v1.0.0`).
+
+**Descargar el .exe**
+
+Actions → build-exe → último run en verde → sección *Artifacts* →
+`SICAM-windows` (contiene `SICAM.exe`, one-file, sin consola).
+
+**Datos en el cliente**
+
+La base de datos y las fotos viven **fuera** del bundle, en
+`%APPDATA%\sicam` (`sicam.db`, `fotos/`, `iconos/`), igual que en desarrollo.
+En Linux: `~/.local/share/sicam`. Variables de entorno: `SICAM_DATA` (carpeta
+de datos) y `SICAM_DB` (archivo .db).
+
+El workflow `build-exe.yml` corre primero los tests en `ubuntu-latest`
+(`QT_QPA_PLATFORM=offscreen uv run pytest -q`) y, si pasan, compila con
+`uv run pyinstaller --onefile --windowed --name SICAM app/main.py` en
+`windows-latest` y publica el artefacto `SICAM-windows`.

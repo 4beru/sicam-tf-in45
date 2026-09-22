@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
 from ..core import db, queries
 from . import icons
 from .theme import COLORS
+from .widgets import vaciar_layout
 
 DER = Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
 
@@ -250,8 +251,5 @@ class NoConformidadesPage(QWidget):
                        "Operario", "Máquina", "Cant."],
                       datos or [["—"] * 8])
         # reemplazar la tabla anterior
-        while self.card_tabla.vbox.count():
-            item = self.card_tabla.vbox.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
+        vaciar_layout(self.card_tabla.vbox)
         self.card_tabla.vbox.addWidget(nueva)

@@ -4,3 +4,8 @@ __pycache__/
 .pytest_cache/
 capturas/
 *.db
+
+# PyInstaller
+dist/
+build/
+*.spec

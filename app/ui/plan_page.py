@@ -14,7 +14,7 @@ from PySide6.QtWidgets import (
 from ..core import plan_tpm
 from . import icons
 from .theme import COLORS
-from .widgets import Card, chip_punto, tabla
+from .widgets import Card, chip_punto, tabla, vaciar_layout
 
 ESTADO_UI = {
     "over": ("st_over", "Vencida"),
@@ -87,10 +87,7 @@ class PlanPage(QWidget):
         self._tareas = plan_tpm.tareas_del_mes(self.conn)
 
         # ---- cabecera: chips + cumplimiento + exportar
-        while self.cabecera.vbox.count():
-            item = self.cabecera.vbox.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
+        vaciar_layout(self.cabecera.vbox)
         fila = QHBoxLayout()
         fila.setSpacing(10)
         titulo = QLabel(f"<b style='font-size:15px'>{r['mes']}</b>")
@@ -132,10 +129,7 @@ class PlanPage(QWidget):
         self.cabecera.vbox.addLayout(fila)
 
         # ---- grid S1–S4
-        while self.card_grid.vbox.count():
-            item = self.card_grid.vbox.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
+        vaciar_layout(self.card_grid.vbox)
 
         frecs = self.conn.execute("SELECT * FROM frecuencias ORDER BY maquina").fetchall()
         ejecutadas = plan_tpm.ejecuciones_del_mes(self.conn)

@@ -9,18 +9,9 @@ from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 from ..core import checklists, iot, plan_tpm, queries
 from .charts import ParetoWidget, TendenciaWidget
 from .theme import COLORS
-from .widgets import Card, Kpi, fila_kpis, tabla
+from .widgets import Card, Kpi, fila_kpis, tabla, vaciar_layout
 
 DER = Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
-
-
-def _limpiar(layout):
-    while layout.count():
-        item = layout.takeAt(0)
-        if (w := item.widget()) is not None:
-            w.deleteLater()
-        elif item.layout() is not None:
-            _limpiar(item.layout())
 
 
 def _num(n: int) -> str:
@@ -37,7 +28,7 @@ class DashboardPage(QWidget):
         self.layout_principal.setSpacing(14)
 
     def refresh(self):
-        _limpiar(self.layout_principal)
+        vaciar_layout(self.layout_principal)
         m = queries.metas(self.conn)
         as_is, to_be = m.get("Tasa de prendas no conformes", (10.68, 4.95))
         r = queries.resumen_mes(self.conn)
