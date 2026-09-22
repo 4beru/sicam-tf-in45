@@ -1,0 +1,24 @@
+[project]
+name = "sicam"
+version = "0.1.0"
+description = "SICAM — Sistema Integral de Calidad y Mantenimiento · Createl Trading SAC (TF-IN45)"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "flask>=3.1.3",
+    "openpyxl>=3.1.5",
+    "pillow>=12.3.0",
+    "pyside6>=6.11.2",
+    "qrcode>=8.2",
+    "reportlab>=5.0.1",
+]
+
+[dependency-groups]
+dev = [
+    "pyinstaller>=6.22.3",
+    "pytest>=9.1.1",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
