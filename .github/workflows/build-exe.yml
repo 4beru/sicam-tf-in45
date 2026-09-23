@@ -70,8 +70,11 @@ jobs:
         run: uv sync
 
       # --windowed evita la consola; --onefile empaqueta todo en un solo exe.
+      # Se compila el lanzador raíz main.py (y no app/main.py) para que los
+      # imports relativos de app/main.py se resuelvan dentro del paquete `app`.
+      # --paths . agrega la raíz del repo para que PyInstaller encuentre `app`.
       - name: Compilar SICAM.exe con PyInstaller
-        run: uv run pyinstaller --noconfirm --clean --onefile --windowed --name SICAM app/main.py
+        run: uv run pyinstaller --noconfirm --clean --onefile --windowed --name SICAM --paths . main.py
 
       - name: Publicar artefacto
         uses: actions/upload-artifact@v4
