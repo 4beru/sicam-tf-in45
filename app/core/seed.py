@@ -173,6 +173,27 @@ def _generar_nc_dia(fecha_iso: str, proceso: str, nc_total: int) -> list[tuple]:
     return filas
 
 
+def asegurar_maquinas_costura(conn: sqlite3.Connection) -> None:
+    """Asegura las 30 estaciones de costura usadas por los QR del checklist."""
+    maquinas = [
+        (f"Costura {i:03d}", "Recta", "M. COSTURA", "Costura", "Media",
+         "2021-01-01", "2026-08-01")
+        for i in range(1, 31)
+    ]
+    with conn:
+        conn.executemany(
+            "INSERT OR IGNORE INTO maquinas VALUES (?,?,?,?,?,?,?)",
+            maquinas,
+        )
+        conn.executemany(
+            "INSERT OR IGNORE INTO frecuencias "
+            "(maquina, actividad, frecuencia_dias, responsable) "
+            "SELECT ?, ?, ?, 'Mantenimiento'",
+            [(m[0], FRECUENCIAS_TIPO["Recta"][0], FRECUENCIAS_TIPO["Recta"][1])
+             for m in maquinas],
+        )
+
+
 def siembra(conn: sqlite3.Connection, reset: bool = False) -> dict[str, int]:
     """Puebla la base con datos sintéticos. Retorna conteos insertados."""
     if reset:
