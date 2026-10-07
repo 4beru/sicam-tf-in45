@@ -20,6 +20,8 @@ def main() -> int:
     app.setStyleSheet(qss())
 
     conn = db.conectar()
+    # Mantener disponibles las 30 estaciones de costura para los QR del checklist.
+    seed.asegurar_maquinas_costura(conn)
 
     primera_vez = False
     if conn.execute("SELECT COUNT(*) FROM no_conformidades").fetchone()[0] == 0:
