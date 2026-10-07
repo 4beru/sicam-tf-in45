@@ -20,13 +20,36 @@ RNG = random.Random(42)
 
 MAQUINAS = [
     # codigo, tipo, marca_modelo, area, criticidad, fecha_compra, ultima_calibracion
-    ("RECT-05", "Recta",           "Brother LN-2828",       "Costura",    "Alta",  "2021-04-12", "2026-07-02"),
-    ("RECT-01", "Recta",           "Juki DDL-8700",         "Costura",    "Media", "2019-03-08", "2026-08-28"),
-    ("OVE-01",  "Overlock",        "Juki MO-6714S",         "Costura",    "Alta",  "2018-08-19", "2026-09-02"),
-    ("REC-02",  "Recubridora",     "Siruba F007J",          "Costura",    "Media", "2020-11-30", "2026-09-02"),
-    ("COR-01",  "Cortadora",       "Eastman Blue Streak",   "Corte",      "Alta",  "2017-05-23", "2026-08-15"),
-    ("ACB-01",  "Plancha / prensa", "Veit Brisay",          "Acabado",    "Media", "2022-02-14", "2026-08-30"),
-    ("ETQ-03",  "Etiquetado",      "Estación manual",       "Etiquetado", "Media", "2023-01-10", "2026-09-10"),
+    ("Costura 001", "Recta",       "Brother LN-2828",  "Costura", "Alta",  "2021-04-12", "2026-07-02"),
+    ("Costura 002", "Recta",       "Juki DDL-8700",    "Costura", "Media", "2019-03-08", "2026-08-28"),
+    ("Costura 003", "Overlock",    "Juki MO-6714S",    "Costura", "Alta",  "2018-08-19", "2026-09-02"),
+    ("Costura 004", "Recubridora", "Siruba F007J",     "Costura", "Media", "2020-11-30", "2026-09-02"),
+    ("Costura 005", "Recta",       "Brother S-7200C",  "Costura", "Alta",  "2021-04-12", "2026-07-02"),
+    ("Costura 006", "Recta",       "Juki DDL-9000C",   "Costura", "Media", "2020-03-08", "2026-08-28"),
+    ("Costura 007", "Overlock",    "Juki MO-6814S",    "Costura", "Alta",  "2019-08-19", "2026-09-02"),
+    ("Costura 008", "Recta",       "Juki DDL-8700",    "Costura", "Media", "2020-11-30", "2026-09-02"),
+    ("Costura 009", "Recta",       "Brother S-7200C",  "Costura", "Media", "2021-01-15", "2026-08-20"),
+    ("Costura 010", "Recta",       "Juki DDL-8700",    "Costura", "Alta",  "2019-06-10", "2026-08-25"),
+    ("Costura 011", "Overlock",    "Juki MO-6714S",    "Costura", "Media", "2020-02-18", "2026-09-01"),
+    ("Costura 012", "Recta",       "Brother S-7200C",  "Costura", "Media", "2021-05-12", "2026-08-18"),
+    ("Costura 013", "Recta",       "Juki DDL-9000C",   "Costura", "Alta",  "2020-07-08", "2026-08-30"),
+    ("Costura 014", "Recubridora", "Siruba F007J",     "Costura", "Media", "2021-11-30", "2026-09-03"),
+    ("Costura 015", "Recta",       "Brother LN-2828",  "Costura", "Media", "2019-09-14", "2026-08-22"),
+    ("Costura 016", "Recta",       "Juki DDL-8700",    "Costura", "Alta",  "2020-10-05", "2026-08-27"),
+    ("Costura 017", "Overlock",    "Juki MO-6814S",    "Costura", "Media", "2021-02-11", "2026-09-04"),
+    ("Costura 018", "Recta",       "Brother S-7200C",  "Costura", "Media", "2022-01-20", "2026-08-24"),
+    ("Costura 019", "Recta",       "Juki DDL-9000C",   "Costura", "Alta",  "2020-12-02", "2026-08-29"),
+    ("Costura 020", "Recta",       "Juki DDL-8700",    "Costura", "Media", "2019-04-17", "2026-08-21"),
+    ("Costura 021", "Recubridora", "Siruba F007J",     "Costura", "Media", "2021-03-09", "2026-09-05"),
+    ("Costura 022", "Overlock",    "Juki MO-6714S",    "Costura", "Alta",  "2018-12-13", "2026-09-01"),
+    ("Costura 023", "Recta",       "Brother LN-2828",  "Costura", "Media", "2022-04-25", "2026-08-26"),
+    ("Costura 024", "Recta",       "Juki DDL-8700",    "Costura", "Media", "2020-05-19", "2026-08-23"),
+    ("Costura 025", "Recta",       "Brother S-7200C",  "Costura", "Alta",  "2021-07-14", "2026-08-31"),
+    ("Costura 026", "Overlock",    "Juki MO-6814S",    "Costura", "Media", "2019-10-28", "2026-09-06"),
+    ("Costura 027", "Recta",       "Juki DDL-9000C",   "Costura", "Media", "2022-02-07", "2026-08-19"),
+    ("Costura 028", "Recta",       "Brother LN-2828",  "Costura", "Alta",  "2020-09-16", "2026-08-28"),
+    ("Costura 029", "Recubridora", "Siruba F007J",     "Costura", "Media", "2021-12-06", "2026-09-02"),
+    ("Costura 030", "Recta",       "Juki DDL-8700",    "Costura", "Media", "2019-11-21", "2026-08-24"),
 ]
 
 OPERARIOS = [
@@ -229,13 +252,13 @@ def sembrar_fase3(conn: sqlite3.Connection) -> dict[str, int]:
     hoy = date.today()
     historial = [
         # (maquina, días atrás, responsable, observación)
-        ("RECT-05", 12, "Téc. Mendoza", "Lubricación completa; puntada uniforme."),
-        ("RECT-01", 3, "Téc. Soto", "Rutina semanal sin hallazgos."),
-        ("OVE-01", 17, "Téc. Mendoza", "Cuchilla con desgaste inicial."),
-        ("REC-02", 8, "Téc. Soto", "Calibración de tensión según estándar."),
-        ("COR-01", 24, "Téc. Mendoza", "Sensor limpio y verificado."),
-        ("ACB-01", 34, "Téc. Soto", "Revisión de presión; manguera ajustada."),
-        ("ETQ-03", 2, "Calidad", "Verificación de guías correcta."),
+        ("Costura 001", 12, "Téc. Mendoza", "Lubricación completa; puntada uniforme."),
+        ("Costura 002", 3, "Téc. Soto", "Rutina semanal sin hallazgos."),
+        ("Costura 003", 17, "Téc. Mendoza", "Cuchilla con desgaste inicial."),
+        ("Costura 004", 8, "Téc. Soto", "Calibración de tensión según estándar."),
+        ("Costura 005", 24, "Téc. Mendoza", "Sensor limpio y verificado."),
+        ("Costura 006", 34, "Téc. Soto", "Revisión de presión; manguera ajustada."),
+        ("Costura 007", 2, "Calidad", "Verificación de guías correcta."),
     ]
     n = 0
     with conn:
@@ -266,11 +289,11 @@ def sembrar_fase2(conn: sqlite3.Connection) -> dict[str, int]:
 
     # 5 de 7 estaciones completaron hoy su checklist (cumplimiento ~71%)
     plan_hoy = [
-        ("RECT-05", "Tarde", "Rojas M.", {"Tensión del hilo (prueba en retazo)": ("Moderada", "Costura fruncida al iniciar.")}),
-        ("RECT-01", "Mañana", "Torres L.", {}),
-        ("OVE-01", "Mañana", "Quispe J.", {"Estado de cuchilla (corte limpio)": ("Crítica", "Cortes irregulares en tela.")}),
-        ("COR-01", "Mañana", "Huamán R.", {}),
-        ("ETQ-03", "Tarde", "Medina K.", {}),
+        ("Costura 001", "Tarde", "Rojas M.", {"Tensión del hilo (prueba en retazo)": ("Moderada", "Costura fruncida al iniciar.")}),
+        ("Costura 002", "Mañana", "Torres L.", {}),
+        ("Costura 003", "Mañana", "Quispe J.", {"Estado de cuchilla (corte limpio)": ("Crítica", "Cortes irregulares en tela.")}),
+        ("Costura 005", "Mañana", "Huamán R.", {}),
+        ("Costura 007", "Tarde", "Medina K.", {}),
     ]
     hora_base = datetime.now()
     for maquina, turno, operario, fallas in plan_hoy:
@@ -291,10 +314,10 @@ def sembrar_fase2(conn: sqlite3.Connection) -> dict[str, int]:
 
     # tarjetas de muestra en distintos estados (Figuras 43–45)
     extra = [
-        ("Seguridad", "Crítica", "COR-01", "Protector de cuchilla retirado; riesgo de corte en operación.", "abierta"),
-        ("Operación", "Leve", "ETQ-03", "Secuencia incorrecta de etiquetado detectada en lote.", "abierta"),
-        ("Mantenimiento", "Moderada", "OVE-01", "Cuchilla desafilada generando cortes irregulares.", "atencion"),
-        ("Mantenimiento", "Leve", "RECT-01", "Falta de lubricación leve en bandeja inferior.", "cerrada"),
+        ("Seguridad", "Crítica", "Costura 005", "Protector de cuchilla retirado; riesgo de corte en operación.", "abierta"),
+        ("Operación", "Leve", "Costura 007", "Secuencia incorrecta de etiquetado detectada en lote.", "abierta"),
+        ("Mantenimiento", "Moderada", "Costura 003", "Cuchilla desafilada generando cortes irregulares.", "atencion"),
+        ("Mantenimiento", "Leve", "Costura 002", "Falta de lubricación leve en bandeja inferior.", "cerrada"),
     ]
     for tipo, sev, maq, desc, estado in extra:
         tid = checklists.crear_tarjeta_manual(conn, tipo, sev, maq, desc)
