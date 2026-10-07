@@ -116,8 +116,10 @@ class ChecklistsPage(QWidget):
 
         c_qr = Card("QR de estación", "imprimible")
         self.combo_estacion = QComboBox()
-        for r in conn.execute("SELECT codigo, tipo, area FROM maquinas ORDER BY codigo"):
-            self.combo_estacion.addItem(f"{r['codigo']} · {r['tipo']} ({r['area']})", r["codigo"])
+        # Estaciones de costura para los QR del checklist: 001–030.
+        for i in range(1, 31):
+            codigo = f"Costura {i:03d}"
+            self.combo_estacion.addItem(f"{i:03d} - M. COSTURA", codigo)
         self.combo_estacion.currentIndexChanged.connect(self._actualizar_qr)
         c_qr.vbox.addWidget(self.combo_estacion)
 
