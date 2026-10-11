@@ -63,6 +63,7 @@ _ICONS: dict[str, str] = {
     "ok": (
         '<path d="M21.8 10A10 10 0 1 1 17 3.34"/><path d="m9 11 3 3L22 4"/>'
     ),
+    "check": ('<path d="m5 12 4 4L19 6"/>'),
     "chart": (
         '<path d="M3 3v16a2 2 0 0 0 2 2h16"/>'
         '<path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>'
