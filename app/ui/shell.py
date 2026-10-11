@@ -294,8 +294,8 @@ class Shell(QMainWindow):
         titulo = next(t for i, _, t, _ in NAV if i == pid)
         self.titulo.setText(titulo)
         self.paginas[pid].refresh()
-        # Recalcular el viewport a partir de la página activa para que una
-        # pantalla que cabe no conserve la altura mínima de otra sección.
+        # Notificar el cambio de página y dejar que el layout ajuste su altura
+        # intrínseca; no conservar una altura fija calculada en otra sección.
         self._actualizar_geometria_pagina()
 
     def refresh_all(self, excepto: str | None = None):
@@ -305,31 +305,15 @@ class Shell(QMainWindow):
         self._actualizar_geometria_pagina()
 
     def _actualizar_geometria_pagina(self):
-        """Recalcula altura intrínseca y rango de scroll de la página visible."""
+        """Propaga cambios de tamaño sin fijar una altura potencialmente obsoleta."""
         actual = self.stack.currentWidget()
-        if actual is not None and actual.layout() is not None:
-            actual.layout().activate()
+        if actual is not None:
+            if actual.layout() is not None:
+                actual.layout().activate()
+            actual.updateGeometry()
         self.stack.updateGeometry()
         if self.page_content.layout() is not None:
             self.page_content.layout().activate()
-        self.page_content.updateGeometry()
-        self.page_scroll.updateGeometry()
-        # Primero dejamos que Qt aplique el nuevo ancho y las columnas
-        # responsive; después fijamos la altura a la necesidad real del contenido.
-        QTimer.singleShot(0, self._sincronizar_altura_pagina)
-
-    def _sincronizar_altura_pagina(self):
-        actual = self.stack.currentWidget()
-        if actual is None:
-            return
-        if actual.layout() is not None:
-            actual.layout().activate()
-        size_hint = actual.sizeHint().height()
-        min_hint = actual.minimumSizeHint().height()
-        altura = max(0, size_hint, min_hint)
-        if altura and self.stack.height() != altura:
-            self.stack.setFixedHeight(altura)
-        self.stack.updateGeometry()
         self.page_content.updateGeometry()
         self.page_scroll.updateGeometry()
 
