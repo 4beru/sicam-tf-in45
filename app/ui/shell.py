@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import sqlite3
 
-from PySide6.QtCore import QSize, Qt
+from PySide6.QtCore import QSize, Qt, QTimer
 from PySide6.QtWidgets import (
     QApplication, QButtonGroup, QComboBox, QFrame, QHBoxLayout, QLabel,
     QMainWindow, QPushButton, QScrollArea, QSizePolicy, QStackedWidget,
@@ -166,13 +166,17 @@ class Shell(QMainWindow):
         cbox = QHBoxLayout(contenido)
         cbox.setContentsMargins(26, 22, 26, 22)
         self.stack = ActivePageStack()
-        self.stack.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        # Anchura flexible para que el contenido refluya; altura basada en la
+        # página visible para que el scroll no herede espacio sobrante.
+        self.stack.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         cbox.addWidget(self.stack)
+        contenido.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
         scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        scroll.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
         scroll.setStyleSheet("QScrollArea { background:transparent; }")
         scroll.setWidget(contenido)
         self.page_scroll = scroll
@@ -212,7 +216,6 @@ class Shell(QMainWindow):
 
         # refresco periódico: detecta cualquier cambio (celular, diálogo,
         # importación) vía firma de datos y actualiza la vista activa
-        from PySide6.QtCore import QTimer
         self._firma = queries.firma_datos(self.conn)
         self._timer_reactividad = QTimer(self)
         self._timer_reactividad.setInterval(5_000)
@@ -302,10 +305,18 @@ class Shell(QMainWindow):
         self._actualizar_geometria_pagina()
 
     def _actualizar_geometria_pagina(self):
-        """Notifica al scroll que cambió la geometría de la página activa."""
+        """Recalcula el tamaño de la página activa y actualiza el rango del scroll."""
+        actual = self.stack.currentWidget()
+        if actual is not None and actual.layout() is not None:
+            actual.layout().activate()
         self.stack.updateGeometry()
         self.page_content.updateGeometry()
+        if self.page_content.layout() is not None:
+            self.page_content.layout().activate()
         self.page_scroll.updateGeometry()
+        # QScrollArea actualiza sus rangos al procesar los cambios de geometría.
+        # Diferir una vuelta evita conservar el rango de la sección anterior.
+        QTimer.singleShot(0, self.page_scroll.updateGeometry)
 
     # ------------------------------------------------ toast
     def toast(self, mensaje: str, tipo: str = "ok"):
@@ -325,5 +336,7 @@ class Shell(QMainWindow):
             self.pill.setVisible(self.width() >= 1120)
         if hasattr(self, "usuario"):
             self.usuario.setMaximumWidth(300 if self.width() >= 1120 else 220 if self.width() >= 820 else 175)
+        if hasattr(self, "page_scroll"):
+            self._actualizar_geometria_pagina()
         if hasattr(self, "toast_host") and self.toast_host.isVisible():
             self._posicionar_toast()
