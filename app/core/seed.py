@@ -14,7 +14,6 @@ import calendar
 import random
 import sqlite3
 from datetime import date, timedelta
-from pathlib import Path
 
 from . import db
 
@@ -201,13 +200,7 @@ def siembra(conn: sqlite3.Connection, reset: bool = False) -> dict[str, int]:
 
     reset=True reemplaza el contenido y regenera la base histórica y el piloto.
     """
-    fotos_a_eliminar: list[Path] = []
     if reset:
-        fotos_a_eliminar = [
-            Path(fila["foto"]) for fila in conn.execute(
-                "SELECT foto FROM checklist_items WHERE foto IS NOT NULL AND foto != ''"
-            )
-        ]
         db.vaciar(conn)
 
     with conn:
@@ -297,17 +290,6 @@ def siembra(conn: sqlite3.Connection, reset: bool = False) -> dict[str, int]:
         fase3 = {"plan_ejecuciones": 0}
 
     sembrar_fase4(conn)
-
-    # Borrar evidencia anterior solo dentro de la carpeta administrada por SICAM.
-    if reset:
-        carpeta_fotos = (db.ruta_data() / "fotos").resolve()
-        for foto in fotos_a_eliminar:
-            try:
-                ruta = foto.resolve()
-                if ruta.is_relative_to(carpeta_fotos) and ruta.is_file():
-                    ruta.unlink()
-            except OSError:
-                continue
 
     return total | fase2 | fase3
 
