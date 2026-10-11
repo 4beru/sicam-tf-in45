@@ -1,4 +1,4 @@
-"""Lógica de checklists móviles y tarjetas TPM (Etapa 6 de la tesis).
+"""Lógica de checklists móviles y tarjetas TPM.
 
 Regla de oro: cada ítem marcado como FALLA en un checklist genera
 automáticamente una Tarjeta TPM con severidad leve / moderada / crítica
@@ -21,7 +21,7 @@ ACCION_SEGUN_SEVERIDAD = {
     "Crítica": "Intervención inmediata",
 }
 
-# Plantillas por tipo de máquina (Figuras 38, 39 y 41 de la tesis)
+# Plantillas por tipo de máquina
 PLANTILLAS: dict[str, list[str]] = {
     "Recta": [
         "Limpieza superficial y retiro de pelusas",
