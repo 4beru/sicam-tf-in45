@@ -185,14 +185,12 @@ class ProduccionPage(QWidget):
         # la izquierda y métricas numéricas alineadas a la derecha.
         header = nueva.horizontalHeader()
         header.setDefaultAlignment(Qt.AlignmentFlag.AlignCenter)
-        # Las columnas con datos acotados se ajustan al contenido; Proceso
-        # aprovecha el ancho restante en vez de dejarlo todo en Tasa NC.
+        # Distribuye el ancho disponible por igual entre las seis columnas.
         header.setStretchLastSection(False)
-        for columna in (0, 2, 3, 4, 5):
+        for columna in range(nueva.columnCount()):
             header.setSectionResizeMode(
-                columna, QHeaderView.ResizeMode.ResizeToContents
+                columna, QHeaderView.ResizeMode.Stretch
             )
-        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         for fila_idx in range(nueva.rowCount()):
             fecha_item = nueva.item(fila_idx, 0)
             turno_item = nueva.item(fila_idx, 2)
