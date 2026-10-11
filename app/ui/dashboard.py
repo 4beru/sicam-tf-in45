@@ -166,7 +166,10 @@ class DashboardPage(QWidget):
         prioridades.vbox.addLayout(fila_prioridades)
 
         grid_resumen = ResponsiveGrid(
-            min_item_width=340, max_columns=3, spacing=DASHBOARD_GAP
+            min_item_width=340,
+            max_columns=3,
+            spacing=DASHBOARD_GAP,
+            center_items=True,
         )
         grid_resumen.set_items([calidad, cumplimiento, prioridades])
         self.layout_principal.addWidget(grid_resumen)
