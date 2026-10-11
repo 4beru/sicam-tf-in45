@@ -74,6 +74,7 @@ class ResponsiveGrid(QWidget):
         self._max_columns = max(1, max_columns)
         self._spacing = max(0, spacing)
         self._center_items = center_items
+        self._center_max_width: int | None = None
         self._columns = 0
 
         self._grid = QGridLayout(self)
@@ -84,6 +85,10 @@ class ResponsiveGrid(QWidget):
 
     def set_items(self, items: list[QWidget]) -> None:
         self._items = list(items)
+        self._center_max_width = (
+            min(widget.maximumWidth() for widget in self._items)
+            if self._center_items and self._items else None
+        )
         self._columns = 0
         self._reflow(force=True)
 
@@ -109,7 +114,7 @@ class ResponsiveGrid(QWidget):
             self._min_item_width,
             (width - self._spacing * (columns - 1)) // columns,
         )
-        max_width = min(widget.maximumWidth() for widget in self._items)
+        max_width = self._center_max_width or cell_width
         item_width = max(self._min_item_width, min(max_width, cell_width))
         for widget in self._items:
             if widget.minimumWidth() != item_width or widget.maximumWidth() != item_width:
