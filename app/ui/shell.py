@@ -337,7 +337,7 @@ class Shell(QMainWindow):
             self.pill.setVisible(self.width() >= 1120)
         if hasattr(self, "usuario"):
             self.usuario.setMaximumWidth(300 if self.width() >= 1120 else 220 if self.width() >= 820 else 175)
-        if hasattr(self, "page_scroll"):
+        if hasattr(self, "page_scrolls"):
             self._actualizar_geometria_pagina()
         if hasattr(self, "toast_host") and self.toast_host.isVisible():
             self._posicionar_toast()
