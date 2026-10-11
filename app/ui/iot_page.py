@@ -151,7 +151,7 @@ class IotPage(QWidget):
             card = Card(ETIQUETAS[var])
             gauge = GaugeWidget()
             # Da margen suficiente para que el arco circular no quede apretado.
-            gauge.setMinimumHeight(185)
+            gauge.setMinimumHeight(285)
             card.vbox.addWidget(gauge)
 
             valor = QLabel("—")
