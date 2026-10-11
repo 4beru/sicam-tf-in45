@@ -1,10 +1,10 @@
-"""Semilla de datos sintéticos coherente con la tesis TF-IN45.
+"""Semilla de datos sintéticos coherente con la referencia TF-IN45.
 
 Genera:
   · Línea base 2024: tasa mensual ~10.4–11.2% (promedio 10.68%),
-    causas distribuidas según la Tabla 7 (25.52 / 23.83 / 16.92 / 14.50 / 11.90 / 7.32).
+    causas distribuidas según el catálogo configurado (25.52 / 23.83 / 16.92 / 14.50 / 11.90 / 7.32).
   · Piloto jul–set 2026: tasa descendente 8.9 → 8.1 → 7.2%.
-  · Máquinas, operarios, frecuencias (Fig. 42) y metas (Tablas 21/22).
+  · Máquinas, operarios, frecuencias y metas configurables.
 
 Determinista (semilla fija) para que las demostraciones sean reproducibles.
 """
@@ -95,7 +95,7 @@ DEFECTOS: dict[str, list[str]] = {
     "Calidad": ["Defecto detectado en inspección final", "Reproceso de prenda aprobada"],
 }
 
-# Tabla 7 — participación de cada causa (2024)
+# catálogo de causas — participación de cada causa (2024)
 PESOS_CAUSA = [
     ("Operaciones no estandarizadas",                25.52),
     ("Errores humanos",                              23.83),
@@ -105,7 +105,7 @@ PESOS_CAUSA = [
     ("Gestión inadecuada de materiales",              7.32),
 ]
 
-# Tasa mensual 2024 (As-Is 10.68% promedio) — Fig. tendencia de la tesis
+# Tasa mensual 2024 (As-Is 10.68% promedio) — Fig. tendencia de la referencia
 TASA_2024 = [11.2, 10.9, 10.8, 10.7, 10.6, 10.9, 10.5, 10.6, 10.7, 10.4, 10.7, 10.7]
 
 # Piloto 2026 (mes, tasa)
@@ -114,7 +114,7 @@ PILOTO = {7: 8.9, 8: 8.1, 9: 7.2}
 VOLUMEN_DIARIO = {"Costura": 720, "Corte": 310, "Etiquetado": 260, "Acabado": 148}
 
 METAS = [
-    # indicador, as_is, to_be — Tablas 21 y 22
+    # indicador, valor de referencia y objetivo
     ("Tasa de prendas no conformes",      10.68, 4.95, "%"),
     ("Cumplimiento de checklists",         0.0,  85.0, "%"),
     ("Cumplimiento del plan TPM",         60.0,  85.0, "%"),
@@ -124,7 +124,7 @@ METAS = [
     ("Descalibraciones de máquinas",      100.0, 65.0, "%"),
 ]
 
-# Fig. 42 — actividad y frecuencia por tipo de máquina
+# Actividad y frecuencia por tipo de máquina
 FRECUENCIAS_TIPO = {
     "Recta":           ("Lubricación y revisión de puntada", 7),
     "Overlock":        ("Revisión de cuchilla", 15),
@@ -257,7 +257,7 @@ def siembra(conn: sqlite3.Connection, reset: bool = False) -> dict[str, int]:
 
 
 def sembrar_fase4(conn: sqlite3.Connection) -> None:
-    """Umbrales IoT (Fig. 47) y 60 lecturas de historial por máquina."""
+    """Umbrales IoT y 60 lecturas de historial por máquina."""
     from . import iot
 
     iot.sembrar_umbrales(conn)
@@ -266,7 +266,7 @@ def sembrar_fase4(conn: sqlite3.Connection) -> None:
 
 
 def sembrar_fase3(conn: sqlite3.Connection) -> dict[str, int]:
-    """Ejecuciones de mantenimiento pasadas para que el motor del plan (Fig. 42)
+    """Ejecuciones de mantenimiento pasadas para que el motor del plan ()
     tenga vencidas, próximas y hechas desde el primer arranque."""
     from . import plan_tpm
 
@@ -333,7 +333,7 @@ def sembrar_fase2(conn: sqlite3.Connection) -> dict[str, int]:
         conn.execute("UPDATE checklists SET creada_en = ? WHERE id = ?",
                      (f"{hoy} {con_hora.strftime('%H:%M')}:00", res["checklist_id"]))
 
-    # tarjetas de muestra en distintos estados (Figuras 43–45)
+    # tarjetas de muestra en distintos estados (distintos estados)
     extra = [
         ("Seguridad", "Crítica", "Costura 005", "Protector de cuchilla retirado; riesgo de corte en operación.", "abierta"),
         ("Operación", "Leve", "Costura 007", "Secuencia incorrecta de etiquetado detectada en lote.", "abierta"),
