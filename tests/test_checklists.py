@@ -26,15 +26,15 @@ def _items(conn, maquina, con_fallas):
 
 
 def test_plantillas_por_tipo(conn):
-    assert len(checklists.items_de_maquina(conn, "RECT-05")) == 8   # recta
-    assert len(checklists.items_de_maquina(conn, "COR-01")) == 6    # cortadora
-    assert "Estado de cuchilla" in " ".join(checklists.items_de_maquina(conn, "OVE-01"))
-
+    assert len(checklists.items_de_maquina(conn, "Costura 001")) == 8
+    assert len(checklists.PLANTILLAS["Cortadora"]) == 6
+    assert len(checklists.PLANTILLAS["Etiquetado"]) == 5
+    assert "Estado de cuchilla (corte limpio)" in checklists.PLANTILLAS["Overlock"]
 
 def test_falla_genera_tarjeta_con_severidad(conn):
     res = checklists.registrar_checklist(
-        conn, "RECT-05", "Tarde", "Rojas M.",
-        _items(conn, "RECT-05", {"Tensión del hilo (prueba en retazo)": ("Moderada", "fruncida")}))
+        conn, "Costura 001", "Tarde", "Rojas M.",
+        _items(conn, "Costura 001", {"Tensión del hilo (prueba en retazo)": ("Moderada", "fruncida")}))
     assert len(res["tarjetas"]) == 1
     t = checklists.detalle_tarjeta(conn, res["tarjetas"][0])
     assert t["tipo"] == "Mantenimiento"
@@ -47,25 +47,24 @@ def test_falla_genera_tarjeta_con_severidad(conn):
 
 def test_varias_fallas_generan_varias_tarjetas(conn):
     res = checklists.registrar_checklist(
-        conn, "OVE-01", "Mañana", "Quispe J.",
-        _items(conn, "OVE-01", {
-            "Estado de cuchilla (corte limpio)": ("Crítica", "cortes irregulares"),
-            "Pedal y guardas de seguridad": ("Leve", "guarda floja"),
+        conn, "Costura 001", "Mañana", "Quispe J.",
+        _items(conn, "Costura 001", {
+            "Pedal y parada de emergencia": ("Crítica", "parada bloqueada"),
+            "Tensión del hilo (prueba en retazo)": ("Leve", "hilo flojo"),
         }))
     assert len(res["tarjetas"]) == 2
     sevs = {checklists.detalle_tarjeta(conn, t)["severidad"] for t in res["tarjetas"]}
     assert sevs == {"Crítica", "Leve"}
 
-
 def test_falla_sin_severidad_rechazada(conn):
     with pytest.raises(ValueError):
-        checklists.registrar_checklist(conn, "RECT-01", "Tarde", "—",
+        checklists.registrar_checklist(conn, "Costura 002", "Tarde", "—",
                                        [{"item": "x", "estado": "falla"}])
 
 
 def test_ciclo_de_vida_de_tarjeta(conn):
     tid = checklists.crear_tarjeta_manual(
-        conn, "Seguridad", "Crítica", "COR-01", "Protector retirado")
+        conn, "Seguridad", "Crítica", "Costura 003", "Protector retirado")
     assert checklists.detalle_tarjeta(conn, tid)["estado"] == "abierta"
     checklists.cambiar_estado_tarjeta(conn, tid, "atencion", "Téc. Soto")
     t = checklists.detalle_tarjeta(conn, tid)
@@ -76,7 +75,7 @@ def test_ciclo_de_vida_de_tarjeta(conn):
 
 def test_cumplimiento_y_recientes(conn):
     c = checklists.cumplimiento_hoy(conn)
-    assert c["total"] == 7                    # estaciones sembradas
+    assert c["total"] == 30                   # estaciones del piloto
     assert 0 < c["hechas"] <= c["total"]      # la semilla llenó algunas hoy
     rec = checklists.checklists_recientes(conn, 5)
     assert rec and all("tarjeta" in r for r in rec)
@@ -84,7 +83,7 @@ def test_cumplimiento_y_recientes(conn):
 
 def test_foto_se_guarda_en_disco(conn, tmp_path):
     res = checklists.registrar_checklist(
-        conn, "RECT-01", "Tarde", "Torres L.",
+        conn, "Costura 002", "Tarde", "Torres L.",
         [{"item": "Orden del puesto de trabajo", "estado": "falla",
           "severidad": "Leve", "comentario": "retazos",
           "foto_bytes": b"\xff\xd8fake", "foto_ext": ".jpg"}],
