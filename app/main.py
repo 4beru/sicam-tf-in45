@@ -18,6 +18,10 @@ def main() -> int:
     app.setApplicationName("SICAM")
     app.setOrganizationName("Createl Trading SAC")
     app.setStyleSheet(qss())
+    # Los gráficos almacenan algunos colores como objetos QColor; sincronizarlos
+    # con el tema persistido antes de construir la interfaz.
+    from .ui.charts import actualizar_colores_tema
+    actualizar_colores_tema()
 
     conn = db.conectar()
     # Mantener disponibles las 30 estaciones de costura para los QR del checklist.
