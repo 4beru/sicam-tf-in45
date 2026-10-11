@@ -23,7 +23,7 @@ from .plan_page import PlanPage
 from .produccion import ProduccionPage
 from .reportes_page import ReportesPage
 from .tarjetas_page import TarjetasPage
-from .theme import COLORS
+from .theme import COLORS, current_theme, qss
 from .widgets import Toast
 
 NAV = [
@@ -107,8 +107,7 @@ class Shell(QMainWindow):
         derecha.setSpacing(0)
 
         topbar = QFrame()
-        topbar.setStyleSheet(f"QFrame {{ background:{COLORS['surface']}; "
-                             f"border-bottom:1px solid {COLORS['line']}; }}")
+        topbar.setProperty("cls", "topbar")
         topbar.setFixedHeight(62)
         tbox = QHBoxLayout(topbar)
         tbox.setContentsMargins(26, 0, 26, 0)
@@ -133,6 +132,13 @@ class Shell(QMainWindow):
         self.bell.setIcon(icons.icono("bell", COLORS["slate"], 17))
         self.bell.clicked.connect(self._campana_clic)
         tbox.addWidget(self.bell)
+
+        self.theme_btn = QPushButton()
+        self.theme_btn.setObjectName("theme_toggle")
+        self.theme_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.theme_btn.clicked.connect(self._toggle_theme)
+        tbox.addWidget(self.theme_btn)
+        self._sync_theme_button()
         derecha.addWidget(topbar)
 
         # páginas dentro de un scroll con márgenes
@@ -206,6 +212,30 @@ class Shell(QMainWindow):
         actual = self.stack.currentWidget()
         if actual is not None:
             actual.refresh()
+
+    # ------------------------------------------------ tema visual
+    def _sync_theme_button(self):
+        """Muestra el icono del tema al que se cambiaría al pulsar."""
+        tema = current_theme()
+        destino = "claro" if tema == "dark" else "oscuro"
+        icono = "sun" if tema == "dark" else "moon"
+        self.theme_btn.setIcon(icons.icono(icono, COLORS["muted"], 18))
+        self.theme_btn.setToolTip(f"Cambiar al tema {destino}")
+        self.theme_btn.setAccessibleName(f"Cambiar al tema {destino}")
+
+    def _toggle_theme(self):
+        nuevo = "dark" if current_theme() == "light" else "light"
+        app = QApplication.instance()
+        if app is not None:
+            app.setStyleSheet(qss(nuevo))
+
+        # QPainter usa colores cacheados; actualizarlos antes de reconstruir
+        # los widgets para que los gráficos también respondan al tema.
+        from .charts import actualizar_colores_tema
+        actualizar_colores_tema()
+        self._sync_theme_button()
+        self.refresh_all()
+        self.toast(f"Tema {'oscuro' if nuevo == 'dark' else 'claro'} activado")
 
     # ------------------------------------------------ campana
     def actualizar_campana(self):
