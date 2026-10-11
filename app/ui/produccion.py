@@ -145,6 +145,12 @@ class ProduccionPage(QWidget):
 
     def _agregar(self):
         fecha = self.f_fecha.date().toString("yyyy-MM-dd")
+        if fecha[:7] != self.shell.mes_activo:
+            QMessageBox.warning(
+                self, "Fecha fuera del periodo",
+                "La fecha del registro debe pertenecer al mes seleccionado en el encabezado.",
+            )
+            return
         if self.f_nc.value() > self.f_insp.value():
             QMessageBox.warning(
                 self, "Datos inconsistentes",
