@@ -1,4 +1,4 @@
-"""Página Monitor IoT: gauges en vivo, gráfico de línea y alertas (Fig. 47).
+"""Página Monitor IoT: gauges en vivo, gráfico de línea y alertas.
 
 Replica la sección MONITOR IoT de la maqueta HTML: 4 gauges de 270°, un
 gráfico de línea de la última hora, el registro de alertas y los umbrales
@@ -73,11 +73,11 @@ class IotPage(QWidget):
         # ---------------- gráfico en vivo + registro de alertas
         fila = QHBoxLayout()
         fila.setSpacing(14)
-        self.card_chart = Card("Última hora · en vivo", "Fig. 47")
+        self.card_chart = Card("Última hora · en vivo")
         self._construir_chart()
         fila.addWidget(self.card_chart, 1)
 
-        self.card_alertas = Card("Registro de alertas", "Fig. 47")
+        self.card_alertas = Card("Registro de alertas")
         self.alert_cuerpo = QVBoxLayout()
         self.alert_cuerpo.setSpacing(8)
         self.card_alertas.vbox.addLayout(self.alert_cuerpo)
@@ -86,7 +86,7 @@ class IotPage(QWidget):
         v.addLayout(fila, 1)
 
         # ---------------- umbrales configurables
-        self.card_umbrales = Card("Umbrales IoT", "Fig. 47 · configurables")
+        self.card_umbrales = Card("Umbrales IoT")
         self._spin_umbrales: dict[tuple[str, str], QDoubleSpinBox] = {}
         self._construir_umbrales()
         v.addWidget(self.card_umbrales)
