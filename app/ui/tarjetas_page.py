@@ -67,7 +67,7 @@ class DetalleTarjetaDialog(QDialog):
         v.addWidget(desc)
 
         accion = checklists.ACCION_SEGUN_SEVERIDAD[self.t["severidad"]]
-        nota = QLabel(f"Acción requerida según tesis (Etapa 6 TPM): <b>{accion}</b>"
+        nota = QLabel(f"Acción requerida (Etapa 6 TPM): <b>{accion}</b>"
                       + (" · con foto de evidencia adjunta" if self.t["origen"] == "Checklist" else ""))
         nota.setProperty("cls", "hint")
         nota.setWordWrap(True)
