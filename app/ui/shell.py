@@ -139,6 +139,7 @@ class Shell(QMainWindow):
 
         pill = QLabel("Piloto · setiembre 2026")
         pill.setObjectName("pill")
+        self.pill = pill
         tbox.addWidget(pill)
 
         self.usuario = QComboBox()
@@ -239,6 +240,7 @@ class Shell(QMainWindow):
         actual = self.stack.currentWidget()
         if actual is not None:
             actual.refresh()
+            self._actualizar_geometria_pagina()
 
     # ------------------------------------------------ tema visual
     def _sync_theme_button(self):
@@ -294,14 +296,19 @@ class Shell(QMainWindow):
         self.paginas[pid].refresh()
         # Recalcular el viewport a partir de la página activa para que una
         # pantalla que cabe no conserve la altura mínima de otra sección.
-        self.stack.updateGeometry()
-        self.page_content.updateGeometry()
-        self.page_scroll.updateGeometry()
+        self._actualizar_geometria_pagina()
 
     def refresh_all(self, excepto: str | None = None):
         for pid, pagina in self.paginas.items():
             if pid != excepto:
                 pagina.refresh()
+        self._actualizar_geometria_pagina()
+
+    def _actualizar_geometria_pagina(self):
+        """Notifica al scroll que cambió la geometría de la página activa."""
+        self.stack.updateGeometry()
+        self.page_content.updateGeometry()
+        self.page_scroll.updateGeometry()
 
     # ------------------------------------------------ toast
     def toast(self, mensaje: str, tipo: str = "ok"):
@@ -315,5 +322,11 @@ class Shell(QMainWindow):
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
-        if self.toast_host.isVisible():
+        # En ventanas estrechas se oculta el chip secundario de la barra para
+        # reservar espacio para el selector de usuario y los botones de acción.
+        if hasattr(self, "pill"):
+            self.pill.setVisible(self.width() >= 1120)
+        if hasattr(self, "usuario"):
+            self.usuario.setMaximumWidth(300 if self.width() >= 1120 else 220)
+        if hasattr(self, "toast_host") and self.toast_host.isVisible():
             self._posicionar_toast()
