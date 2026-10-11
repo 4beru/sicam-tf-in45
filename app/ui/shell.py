@@ -80,6 +80,8 @@ class Shell(QMainWindow):
         mtxt.addWidget(self.brand_logo)
         mtxt.addWidget(self.brand_sub)
         marca.addLayout(mtxt)
+        self._sidebar_brand_spacer = None
+        self.sidebar_brand_row = marca
         marca.addStretch(1)
 
         self.sidebar_toggle = QPushButton()
@@ -266,15 +268,23 @@ class Shell(QMainWindow):
             8 if compacto else 14, 18, 8 if compacto else 14, 14
         )
 
-        self.brand_logo.setText("S" if compacto else "SICAM")
-        self.brand_logo.setAlignment(
-            Qt.AlignmentFlag.AlignCenter if compacto
-            else Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
-        )
-        self.brand_logo.setProperty("compact", compacto)
-        self.brand_logo.style().unpolish(self.brand_logo)
-        self.brand_logo.style().polish(self.brand_logo)
+        # En modo compacto se oculta por completo la marca. También se retira
+        # el stretch de la cabecera para centrar el botón sobre los iconos.
+        self.brand_logo.setVisible(not compacto)
         self.brand_sub.setVisible(not compacto)
+        if compacto and self._sidebar_brand_spacer is None:
+            self._sidebar_brand_spacer = self.sidebar_brand_row.takeAt(1)
+            self.sidebar_brand_row.setAlignment(
+                self.sidebar_toggle,
+                Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignVCenter,
+            )
+        elif not compacto and self._sidebar_brand_spacer is not None:
+            self.sidebar_brand_row.insertItem(1, self._sidebar_brand_spacer)
+            self._sidebar_brand_spacer = None
+            self.sidebar_brand_row.setAlignment(
+                self.sidebar_toggle,
+                Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
+            )
 
         for etiqueta in self.nav_secciones:
             etiqueta.setVisible(not compacto)
