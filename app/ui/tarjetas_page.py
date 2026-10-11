@@ -5,8 +5,9 @@ import sqlite3
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QComboBox, QDialog, QDialogButtonBox, QFormLayout, QHBoxLayout, QLabel,
-    QLineEdit, QPlainTextEdit, QPushButton, QScrollArea, QVBoxLayout, QWidget,
+    QButtonGroup, QComboBox, QDialog, QDialogButtonBox, QFormLayout,
+    QHBoxLayout, QLabel, QLineEdit, QPlainTextEdit, QPushButton, QScrollArea,
+    QVBoxLayout, QWidget,
 )
 
 from ..core import checklists
@@ -175,6 +176,9 @@ class TarjetasPage(QWidget):
         etiqueta = QLabel("Origen:")
         etiqueta.setProperty("cls", "muted")
         fila.addWidget(etiqueta)
+        # Los filtros de origen son mutuamente excluyentes: solo uno activo a la vez.
+        self.grupo_origen = QButtonGroup(self)
+        self.grupo_origen.setExclusive(True)
         for texto, clave in [("Todos", ""), ("Checklist", "Checklist"),
                              ("IoT", "IoT"), ("Manual", "Manual"), ("Semilla", "semilla")]:
             b = QPushButton(texto)
@@ -182,6 +186,7 @@ class TarjetasPage(QWidget):
             b.setCheckable(True)
             b.setChecked(clave == "")
             b.setCursor(Qt.CursorShape.PointingHandCursor)
+            self.grupo_origen.addButton(b)
             b.clicked.connect(lambda _=False, c=clave: self._filtrar(c))
             fila.addWidget(b)
         fila.addStretch(1)
