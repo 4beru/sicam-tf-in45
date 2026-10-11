@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import sqlite3
 
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import QSize, Qt, QTimer
 from PySide6.QtWidgets import (
     QApplication, QButtonGroup, QComboBox, QFrame, QHBoxLayout, QLabel,
     QMainWindow, QPushButton, QScrollArea, QSizePolicy, QStackedWidget,
@@ -57,51 +57,74 @@ class Shell(QMainWindow):
         raiz.setContentsMargins(0, 0, 0, 0)
         raiz.setSpacing(0)
 
-        # ---------------- sidebar
-        sidebar = QFrame()
-        sidebar.setObjectName("sidebar")
-        sidebar.setFixedWidth(238)
-        sbox = QVBoxLayout(sidebar)
+        # ---------------- sidebar expandible
+        self.sidebar = QFrame()
+        self.sidebar.setObjectName("sidebar")
+        self._sidebar_expanded = True
+        self._sidebar_width_expanded = 238
+        self._sidebar_width_collapsed = 72
+        self.sidebar.setFixedWidth(self._sidebar_width_expanded)
+        sbox = QVBoxLayout(self.sidebar)
         sbox.setContentsMargins(14, 18, 14, 14)
         sbox.setSpacing(0)
+        self.sidebar_layout = sbox
 
         marca = QHBoxLayout()
-        logo = QLabel("◈")
-        logo.setStyleSheet("color:#5EEAD4; font-size:22px; font-weight:800; background:transparent;")
-        marca.addWidget(logo)
+        self.brand_logo = QLabel("SICAM")
+        self.brand_logo.setObjectName("brand")
         mtxt = QVBoxLayout()
-        m1 = QLabel("SICAM"); m1.setObjectName("brand")
-        m2 = QLabel("Createl Trading S.A.C."); m2.setObjectName("brand_sub")
-        mtxt.addWidget(m1); mtxt.addWidget(m2)
+        mtxt.setContentsMargins(0, 0, 0, 0)
+        mtxt.setSpacing(1)
+        self.brand_sub = QLabel("Createl Trading S.A.C.")
+        self.brand_sub.setObjectName("brand_sub")
+        mtxt.addWidget(self.brand_logo)
+        mtxt.addWidget(self.brand_sub)
         marca.addLayout(mtxt)
+        marca.addStretch(1)
+
+        self.sidebar_toggle = QPushButton()
+        self.sidebar_toggle.setObjectName("sidebar_toggle")
+        self.sidebar_toggle.setFixedSize(28, 28)
+        self.sidebar_toggle.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.sidebar_toggle.clicked.connect(self._toggle_sidebar)
+        marca.addWidget(self.sidebar_toggle)
         sbox.addLayout(marca)
         sbox.addSpacing(10)
 
         self.nav_botones: dict[str, QPushButton] = {}
+        self.nav_titulos: dict[str, str] = {}
+        self.nav_secciones: list[QLabel] = []
         self.grupo = QButtonGroup(self)
         self.grupo.setExclusive(True)
         seccion_actual = ""
         for pid, seccion, titulo, icono in NAV:
             if seccion != seccion_actual:
                 seccion_actual = seccion
-                s = QLabel(seccion.upper())
-                s.setObjectName("nav_section")
-                sbox.addWidget(s)
+                etiqueta_seccion = QLabel(seccion.upper())
+                etiqueta_seccion.setObjectName("nav_section")
+                self.nav_secciones.append(etiqueta_seccion)
+                sbox.addWidget(etiqueta_seccion)
             b = QPushButton(f"  {titulo}")
             b.setObjectName("nav_btn")
+            b.setProperty("collapsed", False)
             b.setCheckable(True)
             b.setCursor(Qt.CursorShape.PointingHandCursor)
-            b.setIcon(icons.icono(icono, "#94A3B8", 17))
+            b.setIcon(icons.icono(icono, COLORS["sidebar_ink"], 18))
+            b.setIconSize(QSize(18, 18))
+            b.setToolTip("")
+            b.setAccessibleName(titulo)
             b.clicked.connect(lambda _=False, p=pid: self.ir_a(p))
             self.grupo.addButton(b)
             self.nav_botones[pid] = b
+            self.nav_titulos[pid] = titulo
             sbox.addWidget(b)
         sbox.addStretch(1)
 
-        pie = QLabel("SQLite local · 1 PC + celulares\nMVP v0.1 — datos sintéticos")
-        pie.setObjectName("sidebar_foot")
-        sbox.addWidget(pie)
-        raiz.addWidget(sidebar)
+        self.sidebar_foot = QLabel("SQLite local · 1 PC + celulares\nMVP v0.1 — datos sintéticos")
+        self.sidebar_foot.setObjectName("sidebar_foot")
+        sbox.addWidget(self.sidebar_foot)
+        self._sync_sidebar_toggle()
+        raiz.addWidget(self.sidebar)
 
         # ---------------- zona derecha
         derecha = QVBoxLayout()
@@ -218,6 +241,52 @@ class Shell(QMainWindow):
         self.ir_a("dashboard")
         self.actualizar_campana()
 
+    # ------------------------------------------------ sidebar
+    def _sync_sidebar_toggle(self):
+        """Actualiza el icono y el nombre accesible de expandir/contraer."""
+        if self._sidebar_expanded:
+            icono, accion = "panel_left_close", "Contraer menú"
+        else:
+            icono, accion = "panel_left_open", "Expandir menú"
+        self.sidebar_toggle.setIcon(
+            icons.icono(icono, COLORS["sidebar_ink"], 18)
+        )
+        self.sidebar_toggle.setToolTip(accion)
+        self.sidebar_toggle.setAccessibleName(accion)
+
+    def _toggle_sidebar(self):
+        """Alterna entre navegación completa y navegación compacta por iconos."""
+        self._sidebar_expanded = not self._sidebar_expanded
+        compacto = not self._sidebar_expanded
+        self.sidebar.setFixedWidth(
+            self._sidebar_width_collapsed if compacto
+            else self._sidebar_width_expanded
+        )
+        self.sidebar_layout.setContentsMargins(
+            8 if compacto else 14, 18, 8 if compacto else 14, 14
+        )
+
+        self.brand_logo.setText("S" if compacto else "SICAM")
+        self.brand_logo.setAlignment(
+            Qt.AlignmentFlag.AlignCenter if compacto
+            else Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter
+        )
+        self.brand_logo.setProperty("compact", compacto)
+        self.brand_logo.style().unpolish(self.brand_logo)
+        self.brand_logo.style().polish(self.brand_logo)
+        self.brand_sub.setVisible(not compacto)
+
+        for etiqueta in self.nav_secciones:
+            etiqueta.setVisible(not compacto)
+        for pid, boton in self.nav_botones.items():
+            boton.setText("" if compacto else f"  {self.nav_titulos[pid]}")
+            boton.setProperty("collapsed", compacto)
+            boton.setToolTip(self.nav_titulos[pid] if compacto else "")
+            boton.style().unpolish(boton)
+            boton.style().polish(boton)
+        self.sidebar_foot.setVisible(not compacto)
+        self._sync_sidebar_toggle()
+
     # ------------------------------------------------ reactividad
     def _revisar_cambios(self):
         firma = queries.firma_datos(self.conn)
@@ -255,6 +324,7 @@ class Shell(QMainWindow):
         from .charts import actualizar_colores_tema
         actualizar_colores_tema()
         self.bell.setIcon(icons.icono("bell", COLORS["slate"], 17))
+        self._sync_sidebar_toggle()
         self._sync_theme_button()
         self.refresh_all()
         self.toast(f"Tema {'oscuro' if nuevo == 'dark' else 'claro'} activado")
