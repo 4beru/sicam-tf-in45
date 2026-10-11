@@ -168,12 +168,12 @@ class Kpi(QFrame):
         # cuatro indicadores por fila en resoluciones de escritorio habituales.
         meta = QVBoxLayout()
         meta.setSpacing(3)
-        linea_chips = QHBoxLayout()
-        linea_chips.setSpacing(5)
         for texto, tipo in (chips or []):
+            linea_chips = QHBoxLayout()
+            linea_chips.setSpacing(5)
             linea_chips.addWidget(chip(texto, tipo))
-        linea_chips.addStretch(1)
-        meta.addLayout(linea_chips)
+            linea_chips.addStretch(1)
+            meta.addLayout(linea_chips)
 
         t = QLabel(target)
         _cls(t, "kpi_target")
