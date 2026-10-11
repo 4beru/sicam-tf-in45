@@ -26,9 +26,10 @@ VERDE = QColor(COLORS["green"])
 class ParetoWidget(QWidget):
     """Barras por causa + línea de % acumulado + corte 80/20."""
 
-    def __init__(self):
+    def __init__(self, min_height: int = 290):
         super().__init__()
-        self.setMinimumHeight(290)
+        self.setMinimumHeight(min_height)
+        self.setSizePolicy(self.sizePolicy().horizontalPolicy(), self.sizePolicy().verticalPolicy())
         self._datos: list[tuple[str, int, float]] = []  # (causa, prendas, pct)
 
     def set_datos(self, datos: list[tuple[str, int, float]]):
@@ -213,9 +214,9 @@ class DonutWidget(QWidget):
 class TendenciaWidget(QWidget):
     """Tasa mensual: 2024 gris, piloto teal, As-Is y To-Be punteados."""
 
-    def __init__(self):
+    def __init__(self, min_height: int = 290):
         super().__init__()
-        self.setMinimumHeight(290)
+        self.setMinimumHeight(min_height)
         self._puntos: list[dict] = []
         self._as_is = 10.68
         self._to_be = 4.95
