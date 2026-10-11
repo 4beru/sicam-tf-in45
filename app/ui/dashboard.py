@@ -79,7 +79,7 @@ class DashboardPage(QWidget):
                 [(_num(proceso_top[1]) + " NC", "bad")]),
             Kpi("Alertas IoT activas", _num(iot.alertas_pendientes(self.conn)), "activity",
                 [("En vivo · simulador", "teal")], "sin atender"),
-        ], self.layout_principal)
+        ], self.layout_principal, por_fila=4)
 
         # ---------------- gráficos
         fila = QHBoxLayout()
@@ -117,7 +117,7 @@ class DashboardPage(QWidget):
                 "GROUP BY causa ORDER BY n DESC LIMIT 1",
                 (nombre, queries.INICIO_PILOTO)).fetchone()
             filas_ops.append([
-                (str(i), COLORS["muted"]), f"<b>{nombre}</b>",
+                (str(i), COLORS["muted"]), (nombre, None, True),
                 (_num(n), DER),
                 causa_dom["causa"] if causa_dom else "—",
             ])
@@ -128,7 +128,7 @@ class DashboardPage(QWidget):
         c4 = Card("Máquinas con más NC asociadas")
         critic = {row["codigo"]: row["criticidad"]
                   for row in self.conn.execute("SELECT codigo, criticidad FROM maquinas")}
-        filas_maqs = [[f"<b>{mid}</b>", critic.get(mid, "—"), (_num(n), DER)]
+        filas_maqs = [[(mid, None, True), critic.get(mid, "—"), (_num(n), DER)]
                       for mid, n in queries.ranking_maquinas(self.conn)]
         c4.vbox.addWidget(tabla(["Máquina", "Criticidad", "NC (piloto)"],
                                 filas_maqs or [["—", "—", "—"]]))
