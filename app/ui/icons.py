@@ -111,6 +111,14 @@ _ICONS: dict[str, str] = {
         '<path d="m6.35 17.65-1.42 1.42"/><path d="m19.07 4.93-1.42 1.42"/>'
     ),
     "x": ('<path d="M18 6 6 18"/><path d="m6 6 12 12"/>'),
+    "panel_left_close": (
+        '<rect x="3" y="3" width="18" height="18" rx="2"/>'
+        '<path d="M9 3v18"/><path d="m15 10-3 2 3 2"/>'
+    ),
+    "panel_left_open": (
+        '<rect x="3" y="3" width="18" height="18" rx="2"/>'
+        '<path d="M9 3v18"/><path d="m13 10 3 2-3 2"/>'
+    ),
 }
 
 _cache: dict[tuple[str, str, int], object] = {}
