@@ -4,7 +4,7 @@ from __future__ import annotations
 import sqlite3
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
 from ..core import checklists, iot, plan_tpm, queries
 from .charts import ParetoWidget, TendenciaWidget
