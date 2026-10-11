@@ -1,7 +1,9 @@
 """Consultas de analítica para el dashboard y los módulos (sin Qt)."""
 from __future__ import annotations
 
+import calendar
 import sqlite3
+from datetime import date
 
 INICIO_PILOTO = "2026-07-01"
 
@@ -13,6 +15,25 @@ def etiqueta_mes(mes_iso: str) -> str:
     """'2024-01' -> 'Ene 24'"""
     anio, mes = mes_iso.split("-")
     return f"{MESES_CORTOS[int(mes) - 1]} {anio[2:]}"
+
+
+def limites_mes(mes_iso: str) -> tuple[str, str]:
+    """Devuelve los límites ISO inclusivos reales del mes indicado."""
+    try:
+        anio_txt, mes_txt = mes_iso.split("-")
+        anio, numero = int(anio_txt), int(mes_txt)
+        ultimo = calendar.monthrange(anio, numero)[1]
+    except (ValueError, TypeError):
+        raise ValueError(f"Mes no válido: {mes_iso!r}") from None
+    if len(anio_txt) != 4 or len(mes_txt) != 2:
+        raise ValueError(f"Mes no válido: {mes_iso!r}")
+    return f"{anio:04d}-{numero:02d}-01", f"{anio:04d}-{numero:02d}-{ultimo:02d}"
+
+
+def fecha_referencia_mes(mes_iso: str) -> date:
+    """Fecha de corte: hoy en el mes actual o último día del mes consultado."""
+    hoy = date.today()
+    return hoy if mes_iso == hoy.strftime("%Y-%m") else date.fromisoformat(limites_mes(mes_iso)[1])
 
 
 def pareto(conn: sqlite3.Connection, desde: str | None = None,
@@ -70,14 +91,15 @@ def resumen_mes(conn: sqlite3.Connection, mes: str | None = None) -> dict:
     mes = mes or ultimo_mes(conn)
     if not mes:
         return {"mes": None}
-    inicio, fin = f"{mes}-01", f"{mes}-31"
+    inicio, fin = limites_mes(mes)
+    inicio_prev, fin_prev = limites_mes(_mes_anterior(mes))
 
     def q(desde, hasta):
         return conn.execute(
             "SELECT COALESCE(SUM(nc_detectadas),0) AS nc, COALESCE(SUM(inspeccionadas),0) AS insp "
             "FROM produccion WHERE fecha BETWEEN ? AND ?", (desde, hasta)).fetchone()
 
-    act, prev = q(inicio, fin), q(f"{_mes_anterior(mes)}-01", f"{_mes_anterior(mes)}-31")
+    act, prev = q(inicio, fin), q(inicio_prev, fin_prev)
     por_proceso = conn.execute(
         "SELECT proceso, SUM(cantidad) AS n FROM no_conformidades "
         "WHERE fecha BETWEEN ? AND ? GROUP BY proceso ORDER BY n DESC", (inicio, fin)).fetchall()
@@ -96,20 +118,31 @@ def resumen_mes(conn: sqlite3.Connection, mes: str | None = None) -> dict:
 
 
 def ranking_operarios(conn: sqlite3.Connection, proceso: str = "Corte",
-                      desde: str = INICIO_PILOTO, limite: int = 5) -> list[tuple[str, int]]:
-    filas = conn.execute(
-        "SELECT operario, SUM(cantidad) AS n FROM no_conformidades "
-        "WHERE proceso = ? AND fecha >= ? AND operario != '—' "
-        "GROUP BY operario ORDER BY n DESC LIMIT ?", (proceso, desde, limite)).fetchall()
+                      desde: str = INICIO_PILOTO, limite: int = 5,
+                      hasta: str | None = None) -> list[tuple[str, int]]:
+    sql = ("SELECT operario, SUM(cantidad) AS n FROM no_conformidades "
+           "WHERE proceso = ? AND fecha >= ? AND operario != '—'")
+    params: list = [proceso, desde]
+    if hasta:
+        sql += " AND fecha <= ?"
+        params.append(hasta)
+    sql += " GROUP BY operario ORDER BY n DESC LIMIT ?"
+    params.append(limite)
+    filas = conn.execute(sql, params).fetchall()
     return [(r["operario"], r["n"]) for r in filas]
 
 
 def ranking_maquinas(conn: sqlite3.Connection, desde: str = INICIO_PILOTO,
-                     limite: int = 5) -> list[tuple[str, int]]:
-    filas = conn.execute(
-        "SELECT maquina, SUM(cantidad) AS n FROM no_conformidades "
-        "WHERE maquina != '—' AND fecha >= ? "
-        "GROUP BY maquina ORDER BY n DESC LIMIT ?", (desde, limite)).fetchall()
+                     limite: int = 5, hasta: str | None = None) -> list[tuple[str, int]]:
+    sql = ("SELECT maquina, SUM(cantidad) AS n FROM no_conformidades "
+           "WHERE maquina != '—' AND fecha >= ?")
+    params: list = [desde]
+    if hasta:
+        sql += " AND fecha <= ?"
+        params.append(hasta)
+    sql += " GROUP BY maquina ORDER BY n DESC LIMIT ?"
+    params.append(limite)
+    filas = conn.execute(sql, params).fetchall()
     return [(r["maquina"], r["n"]) for r in filas]
 
 
@@ -138,17 +171,32 @@ def no_conformidades(conn: sqlite3.Connection, *, proceso: str = "", turno: str 
     return conn.execute(sql, params).fetchall()
 
 
-def produccion_reciente(conn: sqlite3.Connection, limite: int = 30) -> list[sqlite3.Row]:
+def produccion_reciente(conn: sqlite3.Connection, limite: int = 30,
+                        mes: str | None = None) -> list[sqlite3.Row]:
+    if mes:
+        inicio, fin = limites_mes(mes)
+        return conn.execute(
+            "SELECT * FROM produccion WHERE fecha BETWEEN ? AND ? "
+            "ORDER BY fecha DESC, proceso LIMIT ?", (inicio, fin, limite)).fetchall()
     return conn.execute(
         "SELECT * FROM produccion ORDER BY fecha DESC, proceso LIMIT ?",
         (limite,)).fetchall()
 
 
-def tasa_diaria(conn: sqlite3.Connection, dias: int = 14) -> list[tuple[str, float]]:
-    filas = conn.execute(
-        "SELECT fecha, SUM(nc_detectadas) AS nc, SUM(inspeccionadas) AS insp "
-        "FROM produccion GROUP BY fecha ORDER BY fecha DESC LIMIT ?", (dias,)).fetchall()
-    return [(r["fecha"][5:], round(r["nc"] / (r["insp"] or 1) * 100, 2)) for r in reversed(filas)]
+def tasa_diaria(conn: sqlite3.Connection, dias: int = 14,
+                mes: str | None = None) -> list[tuple[str, float]]:
+    if mes:
+        inicio, fin = limites_mes(mes)
+        filas = conn.execute(
+            "SELECT fecha, SUM(nc_detectadas) AS nc, SUM(inspeccionadas) AS insp "
+            "FROM produccion WHERE fecha BETWEEN ? AND ? "
+            "GROUP BY fecha ORDER BY fecha DESC LIMIT ?", (inicio, fin, dias)).fetchall()
+    else:
+        filas = conn.execute(
+            "SELECT fecha, SUM(nc_detectadas) AS nc, SUM(inspeccionadas) AS insp "
+            "FROM produccion GROUP BY fecha ORDER BY fecha DESC LIMIT ?", (dias,)).fetchall()
+    return [(r["fecha"][5:], round(r["nc"] / (r["insp"] or 1) * 100, 2))
+            for r in reversed(filas)]
 
 
 def metas(conn: sqlite3.Connection) -> dict[str, tuple[float, float]]:
