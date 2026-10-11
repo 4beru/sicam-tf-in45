@@ -104,16 +104,19 @@ class ResponsiveGrid(QWidget):
         )
 
     def _clear_rows(self) -> None:
-        """Desmonta solo los layouts de fila; las tarjetas se conservan vivas."""
+        """Desmonta filas y libera sus QLayoutItems sin destruir las tarjetas."""
+        from shiboken6 import delete
+
         while self._rows.count():
             item = self._rows.takeAt(0)
             row = item.layout()
             if row is None:
+                delete(item)
                 continue
             while row.count():
-                row.takeAt(0)
-            row.setParent(None)
-            row.deleteLater()
+                delete(row.takeAt(0))
+            # En Qt, un sublayout también es el QLayoutItem devuelto por takeAt.
+            delete(row)
 
     def _reflow(self, force: bool = False) -> None:
         columns = self._column_count()
