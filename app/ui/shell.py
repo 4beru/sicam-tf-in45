@@ -235,6 +235,7 @@ class Shell(QMainWindow):
         # los widgets para que los gráficos también respondan al tema.
         from .charts import actualizar_colores_tema
         actualizar_colores_tema()
+        self.bell.setIcon(icons.icono("bell", COLORS["slate"], 17))
         self._sync_theme_button()
         self.refresh_all()
         self.toast(f"Tema {'oscuro' if nuevo == 'dark' else 'claro'} activado")
