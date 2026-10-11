@@ -232,7 +232,7 @@ class DatosPage(QWidget):
             "Este proceso sustituirá los registros manuales/importados y los datos de operación "
             "(checklists, TPM, IoT e historial de importaciones) por la semilla de demostración. "
             "Se conservará únicamente la base sintética definida por SICAM: histórico 2024 y "
-            "piloto julio-noviembre de 2026. No se puede deshacer.\n\n¿Continuar?",
+            "piloto julio-noviembre de 2026. Se eliminarán también las fotos de evidencia asociadas que estén dentro de la carpeta administrada por SICAM. No se puede deshacer.\n\n¿Continuar?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.No,
         )
