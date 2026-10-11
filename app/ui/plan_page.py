@@ -7,8 +7,8 @@ from datetime import date
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QComboBox, QDateEdit, QDialog, QDialogButtonBox, QFormLayout, QHBoxLayout,
-    QLabel, QLineEdit, QPushButton, QTableWidget, QTableWidgetItem, QVBoxLayout,
-    QWidget,
+    QHeaderView, QLabel, QLineEdit, QPushButton, QTableWidget, QTableWidgetItem,
+    QVBoxLayout, QWidget,
 )
 
 from ..core import plan_tpm
@@ -183,12 +183,21 @@ class PlanPage(QWidget):
                     lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
                     cv.addWidget(lbl)
                 grid.setCellWidget(i, s + 2, celda)
-        grid.horizontalHeader().setStretchLastSection(True)
-        grid.horizontalHeader().resizeSection(0, 80)
-        grid.horizontalHeader().resizeSection(1, 220)
-        grid.horizontalHeader().resizeSection(2, 90)
-        for s in range(4):
-            grid.horizontalHeader().resizeSection(s + 3, 120)
+        header = grid.horizontalHeader()
+        header.setStretchLastSection(False)
+
+        # Anchos estables para los datos descriptivos y Responsable; las cuatro
+        # semanas comparten el espacio restante para que las etiquetas respiren.
+        for columna, ancho in ((0, 80), (1, 220), (2, 90), (7, 120)):
+            header.setSectionResizeMode(
+                columna, QHeaderView.ResizeMode.Fixed
+            )
+            header.resizeSection(columna, ancho)
+
+        for columna in range(3, 7):
+            header.setSectionResizeMode(
+                columna, QHeaderView.ResizeMode.Stretch
+            )
         self.card_grid.vbox.addWidget(grid)
 
         h = QLabel("Clic en una celda vencida/próxima/programada para registrar su ejecución: "
