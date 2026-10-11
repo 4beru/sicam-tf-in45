@@ -64,7 +64,7 @@ def _cabecera(titulo: str, subtitulo: str) -> list:
 
 
 def pdf_plan(conn: sqlite3.Connection, ruta: Path | str, hoy: date | None = None) -> Path:
-    """Plan mensual de mantenimiento preventivo (Fig. 42) en PDF."""
+    """Plan mensual de mantenimiento preventivo en PDF."""
     hoy = hoy or date.today()
     r = plan_tpm.resumen(conn, hoy)
     tareas = plan_tpm.tareas_del_mes(conn, hoy)
@@ -119,14 +119,14 @@ def pdf_plan(conn: sqlite3.Connection, ruta: Path | str, hoy: date | None = None
 
     doc = _doc(ruta, f"Plan de mantenimiento preventivo · {r['mes']}")
     doc.build(_cabecera(f"Plan de mantenimiento preventivo TPM — {r['mes']}",
-                        "Frecuencias según la Figura 42 de la tesis (TF-IN45). "
+                        "Frecuencias configuradas en el sistema. "
                         "Estados calculados por el motor del sistema.")
               + [resumen, Spacer(1, 6 * mm), t])
     return Path(ruta)
 
 
 def pdf_indicadores(conn: sqlite3.Connection, ruta: Path | str) -> Path:
-    """As-Is vs To-Be vs actual para los indicadores de las Tablas 21 y 22."""
+    """Comparativa de valores iniciales, objetivos y resultados actuales de los indicadores."""
     metas = queries.metas(conn)
     r = queries.resumen_mes(conn)
     from . import checklists
@@ -156,7 +156,7 @@ def pdf_indicadores(conn: sqlite3.Connection, ruta: Path | str) -> Path:
 
     doc = _doc(ruta, "Resumen de indicadores")
     doc.build(_cabecera("Resumen de indicadores — As-Is · To-Be · Piloto",
-                        "Valores de referencia según las Tablas 21 y 22 de la tesis; "
+                        "Valores iniciales y objetivos configurados; "
                         "los valores actuales se calculan desde la base del sistema.")
               + [t])
     return Path(ruta)
@@ -209,7 +209,7 @@ def pdf_pareto(conn: sqlite3.Connection, ruta: Path | str) -> Path:
 
     doc = _doc(ruta, "Pareto de causas")
     doc.build(_cabecera("Pareto de causas de no conformidad",
-                        "Barras: % por causa (Tabla 6) · Línea: % acumulado · "
+                        "Barras: % por causa · Línea: % acumulado · "
                         "Punteada: corte 80/20.")
               + [d])
     return Path(ruta)
