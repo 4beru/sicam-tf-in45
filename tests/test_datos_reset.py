@@ -34,7 +34,7 @@ def test_restaurar_piloto_recupera_mes_catalogo_y_evidencias(
     conn, app, monkeypatch
 ):
     carpeta_fotos = db.ruta_data() / "fotos"
-    carpeta_fotos.mkdir(parents=True)
+    carpeta_fotos.mkdir(parents=True, exist_ok=True)
     foto = carpeta_fotos / "evidencia.jpg"
     foto.write_bytes(b"evidencia de prueba")
     item = conn.execute(
