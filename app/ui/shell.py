@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import sqlite3
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QSize, Qt
 from PySide6.QtWidgets import (
     QApplication, QButtonGroup, QComboBox, QFrame, QHBoxLayout, QLabel,
     QMainWindow, QPushButton, QScrollArea, QSizePolicy, QStackedWidget,
@@ -41,13 +41,31 @@ NAV = [
 ]
 
 
+class ActivePageStack(QStackedWidget):
+    """Expone el tamaño de la página visible, no el de la página más grande."""
+
+    def sizeHint(self) -> QSize:
+        page = self.currentWidget()
+        if page is None:
+            return QSize(0, 0)
+        hint = page.sizeHint()
+        return hint if hint.isValid() else QSize(0, 0)
+
+    def minimumSizeHint(self) -> QSize:
+        page = self.currentWidget()
+        if page is None:
+            return QSize(0, 0)
+        hint = page.minimumSizeHint()
+        return QSize(max(0, hint.width()), max(0, hint.height()))
+
+
 class Shell(QMainWindow):
     def __init__(self, conn: sqlite3.Connection):
         super().__init__()
         self.conn = conn
         self.setWindowTitle("SICAM · Createl Trading S.A.C.")
         self.resize(1440, 920)
-        self.setMinimumSize(1180, 720)
+        self.setMinimumSize(960, 640)
 
         central = QWidget()
         central.setProperty("cls", "app_root")
@@ -147,13 +165,18 @@ class Shell(QMainWindow):
         contenido.setProperty("cls", "page_content")
         cbox = QHBoxLayout(contenido)
         cbox.setContentsMargins(26, 22, 26, 22)
-        self.stack = QStackedWidget()
+        self.stack = ActivePageStack()
+        self.stack.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         cbox.addWidget(self.stack)
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         scroll.setStyleSheet("QScrollArea { background:transparent; }")
         scroll.setWidget(contenido)
+        self.page_scroll = scroll
+        self.page_content = contenido
         derecha.addWidget(scroll, 1)
         raiz.addLayout(derecha, 1)
 
@@ -267,6 +290,11 @@ class Shell(QMainWindow):
         titulo = next(t for i, _, t, _ in NAV if i == pid)
         self.titulo.setText(titulo)
         self.paginas[pid].refresh()
+        # Recalcular el viewport a partir de la página activa para que una
+        # pantalla que cabe no conserve la altura mínima de otra sección.
+        self.stack.updateGeometry()
+        self.page_content.updateGeometry()
+        self.page_scroll.updateGeometry()
 
     def refresh_all(self, excepto: str | None = None):
         for pid, pagina in self.paginas.items():
