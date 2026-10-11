@@ -58,6 +58,9 @@ def _build_qss() -> str:
 }}
 QMainWindow, QDialog {{ background: {COLORS['bg']}; }}
 QWidget {{ color: {COLORS['ink']}; }}
+QWidget[cls="app_root"], QWidget[cls="page_content"] {{
+    background: {COLORS['bg']};
+}}
 
 /* ---------- sidebar ---------- */
 QFrame#sidebar {{ background: {COLORS['sidebar']}; border: none; }}
