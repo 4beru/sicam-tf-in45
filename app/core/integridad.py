@@ -124,18 +124,54 @@ def auditar_y_reparar(conn: sqlite3.Connection) -> dict[str, list[str] | str]:
             "revísalas o usa «Restablecer datos piloto»."
         )
 
-    faltan = []
+    faltan_produccion = []
+    faltan_nc = []
     for mes in ("2026-08", "2026-09", "2026-10", "2026-11"):
         desde, hasta = queries.limites_mes(mes)
-        n = conn.execute(
+        produccion = conn.execute(
             "SELECT COUNT(*) FROM produccion WHERE fecha BETWEEN ? AND ?", (desde, hasta)
         ).fetchone()[0]
-        if not n:
-            faltan.append(queries.etiqueta_mes(mes))
-    if faltan:
+        no_conformidades = conn.execute(
+            "SELECT COUNT(*) FROM no_conformidades WHERE fecha BETWEEN ? AND ?", (desde, hasta)
+        ).fetchone()[0]
+        etiqueta = queries.etiqueta_mes(mes)
+        if not produccion:
+            faltan_produccion.append(etiqueta)
+        if not no_conformidades:
+            faltan_nc.append(etiqueta)
+    if faltan_produccion:
         problemas.append(
-            "Falta producción piloto para: " + ", ".join(faltan)
+            "Falta producción piloto para: " + ", ".join(faltan_produccion)
             + ". Usa «Restablecer datos piloto» para regenerar la demostración."
+        )
+    if faltan_nc:
+        problemas.append(
+            "Faltan registros de no conformidad piloto para: " + ", ".join(faltan_nc)
+            + ". Usa «Restablecer datos piloto» para regenerar la demostración."
+        )
+
+    # La semilla sintética genera producción y NC por día/proceso a partir de
+    # la misma tasa. Se comparan solo filas marcadas como semilla, no datos
+    # manuales/importados que pueden tener un flujo de registro distinto.
+    desajustes_semilla = conn.execute(
+        "WITH p AS ("
+        " SELECT fecha, proceso, SUM(nc_detectadas) AS total"
+        " FROM produccion WHERE origen_dato = 'semilla' GROUP BY fecha, proceso"
+        "), n AS ("
+        " SELECT fecha, proceso, SUM(cantidad) AS total"
+        " FROM no_conformidades WHERE origen_dato = 'semilla' GROUP BY fecha, proceso"
+        "), claves AS ("
+        " SELECT fecha, proceso FROM p UNION SELECT fecha, proceso FROM n"
+        ")"
+        " SELECT COUNT(*) FROM claves"
+        " LEFT JOIN p USING (fecha, proceso)"
+        " LEFT JOIN n USING (fecha, proceso)"
+        " WHERE COALESCE(p.total, 0) != COALESCE(n.total, 0)"
+    ).fetchone()[0]
+    if desajustes_semilla:
+        problemas.append(
+            f"Producción y no conformidades de la semilla no coinciden en "
+            f"{desajustes_semilla} combinaciones fecha/proceso."
         )
 
     return {
