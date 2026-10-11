@@ -136,6 +136,31 @@ QLabel[cls="chip_info"] {{ background: {COLORS['info_soft']};                 co
 QLabel[cls="chip_teal"] {{ background: {COLORS['teal_soft']};   color: {COLORS['teal_dark']}; font-size: 10.5px; font-weight: 800; padding: 3px 9px; border-radius: 10px; }}
 QLabel[cls="chip_purple"] {{ background: {COLORS['purple_soft']}; color: {COLORS['purple_text']}; font-size: 10.5px; font-weight: 800; padding: 3px 9px; border-radius: 10px; }}
 
+/* ---------- botones de ventanas flotantes ---------- */
+/* QDialogButtonBox y QMessageBox pueden usar el estilo nativo del sistema;
+   fijamos fondo y texto con la paleta activa para asegurar contraste en dark. */
+QDialog QPushButton, QMessageBox QPushButton {{
+    background: {COLORS['surface_alt']};
+    color: {COLORS['ink']};
+    border: 1px solid {COLORS['line']};
+    border-radius: 8px;
+    padding: 7px 14px;
+    font-weight: 600;
+}}
+QDialog QPushButton:hover, QMessageBox QPushButton:hover {{
+    background: {COLORS['bg']};
+    border-color: {COLORS['teal']};
+}}
+QDialog QPushButton:pressed, QMessageBox QPushButton:pressed {{
+    background: {COLORS['teal_soft']};
+    color: {COLORS['teal_dark']};
+}}
+QDialog QPushButton:disabled, QMessageBox QPushButton:disabled {{
+    background: {COLORS['disabled_bg']};
+    color: {COLORS['disabled_text']};
+    border-color: {COLORS['line']};
+}}
+
 /* ---------- botones ---------- */
 QPushButton[cls="primary"] {{
     background: {COLORS['primary_bg']}; color: {COLORS['primary_text']}; font-weight: 700;
