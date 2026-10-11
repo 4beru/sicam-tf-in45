@@ -1,6 +1,9 @@
 """Widgets compartidos: tarjetas, KPIs, chips, tablas y toast."""
 from __future__ import annotations
 
+import re
+from html import unescape
+
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (
     QFrame, QGridLayout, QHBoxLayout, QHeaderView, QLabel, QSizePolicy,
@@ -82,15 +85,22 @@ class Kpi(QFrame):
         v.addWidget(val)
         self.valor_label = val
 
-        meta = QHBoxLayout()
-        meta.setSpacing(5)
+        # Separar chips y descripción evita que se desborden al mostrar
+        # cuatro indicadores por fila en resoluciones de escritorio habituales.
+        meta = QVBoxLayout()
+        meta.setSpacing(3)
+        linea_chips = QHBoxLayout()
+        linea_chips.setSpacing(5)
         for texto, tipo in (chips or []):
-            meta.addWidget(chip(texto, tipo))
-        if target:
-            t = QLabel(target)
-            _cls(t, "kpi_target")
-            meta.addWidget(t)
-        meta.addStretch(1)
+            linea_chips.addWidget(chip(texto, tipo))
+        linea_chips.addStretch(1)
+        meta.addLayout(linea_chips)
+
+        t = QLabel(target)
+        _cls(t, "kpi_target")
+        t.setWordWrap(True)
+        t.setMinimumHeight(12)
+        meta.addWidget(t)
         v.addLayout(meta)
 
 
@@ -123,15 +133,22 @@ def tabla(columnas: list[str], filas: list[list], stretch_ultima: bool = True) -
     for i, fila in enumerate(filas):
         for j, valor in enumerate(fila):
             item = QTableWidgetItem()
-            if isinstance(valor, tuple):  # (texto, color) o (texto, alignment)
-                texto, extra = valor
-                item.setText(str(texto))
+            if isinstance(valor, tuple):
+                # Formatos compatibles: (texto, color/alineación) o
+                # (texto, color/alineación, negrita). QTableWidgetItem no
+                # interpreta HTML; se aplica el estilo con propiedades Qt.
+                texto, extra, *opciones = valor
+                item.setText(_texto_tabla(texto))
                 if isinstance(extra, Qt.AlignmentFlag):
                     item.setTextAlignment(extra | Qt.AlignmentFlag.AlignVCenter)
-                else:
-                    item.setForeground(_qcolor(extra))
+                elif extra is not None:
+                    item.setForeground(_qcolor(str(extra)))
+                if opciones and opciones[0]:
+                    fuente = item.font()
+                    fuente.setBold(True)
+                    item.setFont(fuente)
             else:
-                item.setText(str(valor))
+                item.setText(_texto_tabla(valor))
             item.setToolTip(item.text())
             t.setItem(i, j, item)
 
@@ -139,6 +156,17 @@ def tabla(columnas: list[str], filas: list[list], stretch_ultima: bool = True) -
     header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
     header.setStretchLastSection(stretch_ultima)
     return t
+
+
+_ETIQUETA_HTML = re.compile(r"</?[A-Za-z][^>]*>")
+
+
+def _texto_tabla(valor) -> str:
+    """Convierte texto accidentalmente marcado con HTML a texto plano legible."""
+    texto = str(valor)
+    if _ETIQUETA_HTML.search(texto):
+        texto = _ETIQUETA_HTML.sub("", texto)
+    return unescape(texto)
 
 
 def _qcolor(hexa: str):
