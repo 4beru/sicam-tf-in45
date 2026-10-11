@@ -7,7 +7,7 @@ from datetime import date
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QComboBox, QDateEdit, QGridLayout, QHeaderView, QHBoxLayout, QLabel,
-    QPushButton, QSizePolicy, QSpinBox, QVBoxLayout, QWidget,
+    QMessageBox, QPushButton, QSizePolicy, QSpinBox, QVBoxLayout, QWidget,
 )
 
 from ..core import db, queries
@@ -34,7 +34,10 @@ class ProduccionPage(QWidget):
         card_form.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
-        self.f_fecha = QDateEdit(date.today())
+        mes_activo = self.shell.mes_activo
+        primer_dia = date.fromisoformat(queries.limites_mes(mes_activo)[0])
+        fecha_sugerida = date.today() if date.today().strftime("%Y-%m") == mes_activo else primer_dia
+        self.f_fecha = QDateEdit(fecha_sugerida)
         self.f_fecha.setDisplayFormat("dd/MM/yyyy")
         self.f_fecha.setCalendarPopup(True)
         self.f_fecha.setProperty("cal", True)
@@ -112,7 +115,7 @@ class ProduccionPage(QWidget):
         self._actualizar_previsualizacion_tasa()
 
         # ---------------- tendencia a todo lo ancho
-        self.card_chart = Card("Tasa diaria — últimos 14 días")
+        self.card_chart = Card("Tasa diaria · últimos 14 días del mes seleccionado")
         self.chart = TendenciaWidget()
         self.chart.setMinimumHeight(290)
         self.card_chart.vbox.addWidget(self.chart)
@@ -126,7 +129,7 @@ class ProduccionPage(QWidget):
         fila_registros.setSpacing(14)
         fila_registros.addWidget(card_form, 2)
 
-        self.card_tabla = Card("Producción y tasa de NC · últimos registros")
+        self.card_tabla = Card("Producción y tasa de NC · mes seleccionado")
         self.card_tabla.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
@@ -142,11 +145,18 @@ class ProduccionPage(QWidget):
 
     def _agregar(self):
         fecha = self.f_fecha.date().toString("yyyy-MM-dd")
+        if self.f_nc.value() > self.f_insp.value():
+            QMessageBox.warning(
+                self, "Datos inconsistentes",
+                "Las no conformidades detectadas no pueden superar las prendas inspeccionadas.",
+            )
+            return
         with self.conn:
             self.conn.execute(
-                "INSERT INTO produccion (fecha, proceso, turno, inspeccionadas, nc_detectadas) "
-                "VALUES (?,?,?,?,?) ON CONFLICT (fecha, proceso, turno) DO UPDATE SET "
-                "inspeccionadas=excluded.inspeccionadas, nc_detectadas=excluded.nc_detectadas",
+                "INSERT INTO produccion (fecha, proceso, turno, inspeccionadas, nc_detectadas, origen_dato) "
+                "VALUES (?,?,?,?,?,'manual') ON CONFLICT (fecha, proceso, turno) DO UPDATE SET "
+                "inspeccionadas=excluded.inspeccionadas, nc_detectadas=excluded.nc_detectadas, "
+                "origen_dato='manual'",
                 (fecha, self.f_proceso.currentText(), self.f_turno.currentText(),
                  self.f_insp.value(), self.f_nc.value()))
         self.shell.toast("Producción registrada — tasa NC calculada automáticamente")
@@ -165,8 +175,14 @@ class ProduccionPage(QWidget):
             + " prendas inspeccionadas."
         )
 
+    def set_mes_activo(self, mes: str):
+        inicio, _ = queries.limites_mes(mes)
+        sugerida = date.today() if date.today().strftime("%Y-%m") == mes else date.fromisoformat(inicio)
+        self.f_fecha.setDate(sugerida)
+
     def refresh(self):
-        filas = queries.produccion_reciente(self.conn, 30)
+        mes = self.shell.mes_activo
+        filas = queries.produccion_reciente(self.conn, 30, mes=mes)
         datos = []
         for r in filas:
             tasa = r["nc_detectadas"] / r["inspeccionadas"] * 100 if r["inspeccionadas"] else 0
@@ -213,5 +229,5 @@ class ProduccionPage(QWidget):
         m = queries.metas(self.conn)
         as_is, to_be = m.get("Tasa de prendas no conformes", (10.68, 4.95))
         puntos = [{"etiqueta": e, "tasa": t, "piloto": True}
-                  for e, t in queries.tasa_diaria(self.conn, 14)]
+                  for e, t in queries.tasa_diaria(self.conn, 14, mes=mes)]
         self.chart.set_datos(puntos, as_is, to_be)
