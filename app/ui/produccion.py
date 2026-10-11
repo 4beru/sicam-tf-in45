@@ -6,8 +6,8 @@ from datetime import date
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QComboBox, QDateEdit, QHBoxLayout, QLabel, QPushButton, QSizePolicy,
-    QSpinBox, QVBoxLayout, QWidget,
+    QComboBox, QDateEdit, QGridLayout, QHBoxLayout, QLabel, QPushButton,
+    QSizePolicy, QSpinBox, QVBoxLayout, QWidget,
 )
 
 from ..core import db, queries
@@ -29,49 +29,116 @@ class ProduccionPage(QWidget):
         v.setContentsMargins(0, 0, 0, 0)
         v.setSpacing(14)
 
-        # ---------------- formulario
+        # ---------------- formulario (columna izquierda)
         card_form = Card("Registrar producción del día")
-        fila = QHBoxLayout()
-        fila.setSpacing(9)
+        card_form.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        )
         self.f_fecha = QDateEdit(date.today())
         self.f_fecha.setDisplayFormat("dd/MM/yyyy")
         self.f_fecha.setCalendarPopup(True)
         self.f_fecha.setProperty("cal", True)
-        self.f_fecha.setCalendarPopup(True)
-        self.f_proceso = QComboBox(); self.f_proceso.addItems(db.PROCESOS)
-        self.f_turno = QComboBox(); self.f_turno.addItems(db.TURNOS)
-        self.f_insp = QSpinBox(); self.f_insp.setRange(1, 1_000_000)
-        self.f_nc = QSpinBox(); self.f_nc.setRange(0, 1_000_000)
-        btn = QPushButton("  Agregar")
+        self.f_proceso = QComboBox()
+        self.f_proceso.addItems(db.PROCESOS)
+        self.f_turno = QComboBox()
+        self.f_turno.addItems(db.TURNOS)
+        self.f_insp = QSpinBox()
+        self.f_insp.setRange(1, 1_000_000)
+        self.f_nc = QSpinBox()
+        self.f_nc.setRange(0, 1_000_000)
+
+        def campo(etiqueta: str, control: QWidget) -> QVBoxLayout:
+            bloque = QVBoxLayout()
+            bloque.setContentsMargins(0, 0, 0, 0)
+            bloque.setSpacing(5)
+            lbl = QLabel(etiqueta)
+            lbl.setProperty("cls", "muted")
+            bloque.addWidget(lbl)
+            control.setSizePolicy(
+                QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed
+            )
+            bloque.addWidget(control)
+            return bloque
+
+        campos = QGridLayout()
+        campos.setContentsMargins(0, 0, 0, 0)
+        campos.setHorizontalSpacing(12)
+        campos.setVerticalSpacing(12)
+        campos.addLayout(campo("Fecha", self.f_fecha), 0, 0, 1, 2)
+        campos.addLayout(campo("Proceso", self.f_proceso), 1, 0, 1, 2)
+        campos.addLayout(campo("Turno", self.f_turno), 2, 0, 1, 2)
+        campos.addLayout(campo("Prendas inspeccionadas", self.f_insp), 3, 0)
+        campos.addLayout(campo("NC detectadas", self.f_nc), 3, 1)
+        card_form.vbox.addLayout(campos)
+
+        # Resumen calculado en tiempo real para aportar información útil al formulario.
+        resumen = QWidget()
+        resumen.setProperty("cls", "ficha")
+        resumen_v = QVBoxLayout(resumen)
+        resumen_v.setContentsMargins(12, 10, 12, 10)
+        resumen_v.setSpacing(3)
+        resumen_titulo = QLabel("TASA NC ESTIMADA")
+        resumen_titulo.setProperty("cls", "summary_label")
+        resumen_v.addWidget(resumen_titulo)
+        self.lbl_tasa_valor = QLabel("0.0%")
+        self.lbl_tasa_valor.setProperty("cls", "summary_value")
+        resumen_v.addWidget(self.lbl_tasa_valor)
+        self.lbl_tasa_detalle = QLabel()
+        self.lbl_tasa_detalle.setProperty("cls", "summary_detail")
+        self.lbl_tasa_detalle.setWordWrap(True)
+        resumen_v.addWidget(self.lbl_tasa_detalle)
+        card_form.vbox.addWidget(resumen)
+
+        ayuda = QLabel(
+            "El registro se identifica por fecha, proceso y turno. "
+            "La tasa se calcula automáticamente como NC detectadas ÷ "
+            "prendas inspeccionadas × 100."
+        )
+        ayuda.setProperty("cls", "hint")
+        ayuda.setWordWrap(True)
+        card_form.vbox.addWidget(ayuda)
+        card_form.vbox.addStretch(1)
+
+        btn = QPushButton("  Registrar producción")
         btn.setProperty("cls", "primary")
         btn.setIcon(icons.icono("plus", "#FFFFFF", 15))
+        btn.setMinimumHeight(40)
+        btn.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         btn.clicked.connect(self._agregar)
-        for w in (self.f_fecha, self.f_proceso, self.f_turno, self.f_insp, self.f_nc, btn):
-            fila.addWidget(w)
-        fila.addStretch(1)
-        card_form.vbox.addLayout(fila)
-        h = QLabel("Las NC detectadas provienen del módulo de No conformidades; esta tasa es el insumo del dashboard.")
-        h.setProperty("cls", "hint")
-        card_form.vbox.addWidget(h)
-        v.addWidget(card_form)
+        card_form.vbox.addWidget(btn)
 
-        # ---------------- tendencia arriba; tabla al final
-        columna_resultados = QVBoxLayout()
-        columna_resultados.setSpacing(14)
+        self.f_insp.valueChanged.connect(self._actualizar_previsualizacion_tasa)
+        self.f_nc.valueChanged.connect(self._actualizar_previsualizacion_tasa)
+        self._actualizar_previsualizacion_tasa()
 
+        # ---------------- tendencia a todo lo ancho
         self.card_chart = Card("Tasa diaria — últimos 14 días")
         self.chart = TendenciaWidget()
         self.chart.setMinimumHeight(290)
         self.card_chart.vbox.addWidget(self.chart)
-        # Evita que la cantidad de filas de la tabla estire este gráfico.
         self.card_chart.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Maximum
         )
-        columna_resultados.addWidget(self.card_chart)
+        v.addWidget(self.card_chart)
+
+        # ---------------- formulario y tabla en columnas
+        fila_registros = QHBoxLayout()
+        fila_registros.setSpacing(14)
+        fila_registros.addWidget(card_form, 2)
 
         self.card_tabla = Card("Producción y tasa de NC · últimos registros")
-        columna_resultados.addWidget(self.card_tabla)
-        v.addLayout(columna_resultados, 1)
+        self.card_tabla.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        )
+        # Conserva los 30 registros y limita la altura visual de la tarjeta;
+        # QTableWidget permite recorrer el resto con su scroll vertical.
+        self.card_tabla.setMaximumHeight(640)
+        self.tabla_layout = QVBoxLayout()
+        self.tabla_layout.setContentsMargins(0, 0, 0, 0)
+        self.tabla_layout.setSpacing(0)
+        self.card_tabla.vbox.addLayout(self.tabla_layout)
+        fila_registros.addWidget(self.card_tabla, 5)
+        v.addLayout(fila_registros, 1)
 
     def _agregar(self):
         fecha = self.f_fecha.date().toString("yyyy-MM-dd")
@@ -85,6 +152,18 @@ class ProduccionPage(QWidget):
         self.shell.toast("Producción registrada — tasa NC calculada automáticamente")
         self.shell.refresh_all(excepto="prod")
         self.refresh()
+
+    def _actualizar_previsualizacion_tasa(self, *_):
+        inspeccionadas = self.f_insp.value()
+        nc = self.f_nc.value()
+        tasa = nc / inspeccionadas * 100 if inspeccionadas else 0.0
+        self.lbl_tasa_valor.setText(f"{tasa:.1f}%")
+        self.lbl_tasa_detalle.setText(
+            f"{nc:,}".replace(",", " ")
+            + " NC detectadas de "
+            + f"{inspeccionadas:,}".replace(",", " ")
+            + " prendas inspeccionadas."
+        )
 
     def refresh(self):
         filas = queries.produccion_reciente(self.conn, 30)
@@ -121,8 +200,8 @@ class ProduccionPage(QWidget):
                 # Se conserva el color de severidad y se corrige solo la alineación.
                 tasa_item.setTextAlignment(DER)
 
-        vaciar_layout(self.card_tabla.vbox)
-        self.card_tabla.vbox.addWidget(nueva)
+        vaciar_layout(self.tabla_layout)
+        self.tabla_layout.addWidget(nueva)
 
         m = queries.metas(self.conn)
         as_is, to_be = m.get("Tasa de prendas no conformes", (10.68, 4.95))
