@@ -106,7 +106,8 @@ def generar_plantilla(ruta: Path | str) -> Path:
     return ruta
 
 
-def exportar_no_conformidades(conn, ruta: Path | str, desde: str | None = None) -> int:
+def exportar_no_conformidades(conn, ruta: Path | str, desde: str | None = None,
+                              hasta: str | None = None) -> int:
     """Exporta el registro de NC a XLSX con las mismas columnas de la plantilla."""
     from openpyxl import Workbook
 
@@ -114,9 +115,15 @@ def exportar_no_conformidades(conn, ruta: Path | str, desde: str | None = None) 
     sql = ("SELECT fecha, turno, proceso, causa, defecto, operario, maquina, cantidad "
            "FROM no_conformidades")
     params: list = []
+    condiciones = []
     if desde:
-        sql += " WHERE fecha >= ?"
+        condiciones.append("fecha >= ?")
         params.append(desde)
+    if hasta:
+        condiciones.append("fecha <= ?")
+        params.append(hasta)
+    if condiciones:
+        sql += " WHERE " + " AND ".join(condiciones)
     sql += " ORDER BY fecha DESC, id DESC"
     filas = conn.execute(sql, params).fetchall()
 
