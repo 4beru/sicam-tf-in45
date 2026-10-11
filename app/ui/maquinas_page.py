@@ -18,24 +18,27 @@ from .widgets import Card, vaciar_layout
 
 def _chip_crit(criticidad: str) -> QLabel:
     c = QLabel(criticidad)
-    css = {"Alta": ("#FEE2E2", "#B91C1C"), "Media": ("#FEF3C7", "#B45309"),
-           "Baja": ("#DCFCE7", "#15803D")}.get(criticidad, ("#F1F5F9", "#475569"))
+    css = {
+        "Alta": (COLORS["severity_high_bg"], COLORS["severity_high_text"]),
+        "Media": (COLORS["severity_medium_bg"], COLORS["severity_medium_text"]),
+        "Baja": (COLORS["green_soft"], COLORS["good_text"]),
+    }.get(criticidad, (COLORS["surface_alt"], COLORS["slate"]))
     c.setStyleSheet(f"background:{css[0]};color:{css[1]};font-size:10px;"
-                    f"font-weight:800;padding:2px 8px;border-radius:6px")
+                    f"font-weight:800;padding:3px 8px;border-radius:6px")
     return c
 
 
 def _estado_calibracion(ultima: str) -> tuple[str, str]:
     """(texto, color) — vencida si pasaron más de 90 días."""
     if not ultima:
-        return "Sin registro", "#B45309"
+        return "Sin registro", COLORS["warn_text"]
     try:
         dias = (date.today() - date.fromisoformat(ultima)).days
     except ValueError:
-        return ultima, "#64748B"
+        return ultima, COLORS["muted"]
     if dias > 90:
-        return f"⚠ Vencida ({dias} días)", "#B91C1C"
-    return f"✔ Al día ({dias} días)", "#15803D"
+        return f"⚠ Vencida ({dias} días)", COLORS["bad_text"]
+    return f"✔ Al día ({dias} días)", COLORS["good_text"]
 
 
 class MaquinasPage(QWidget):
@@ -97,7 +100,7 @@ class MaquinasPage(QWidget):
 
         cabeza = QHBoxLayout()
         titulo = QLabel(f"<span style='font-size:17px;font-weight:800'>{codigo}</span>"
-                        f"&nbsp;&nbsp;<span style='color:#64748B'>{tipo} · {marca}</span>")
+                        f"&nbsp;&nbsp;<span style='color:{COLORS['muted']}'>{tipo} · {marca}</span>")
         titulo.setTextFormat(Qt.TextFormat.RichText)
         cabeza.addWidget(titulo)
         cabeza.addStretch(1)
