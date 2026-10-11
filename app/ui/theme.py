@@ -235,11 +235,11 @@ QLabel#toast[cls="warn"] {{ background: #92400E; }}
 
 QStatusBar {{ background: transparent; color: {COLORS['muted']}; font-size: 11px; }}
 QScrollBar:vertical {{ background: transparent; width: 9px; margin: 2px; }}
-QScrollBar::handle:vertical {{ background: #CBD5E1; border-radius: 4px; min-height: 30px; }}
-QScrollBar::handle:vertical:hover {{ background: #94A3B8; }}
+QScrollBar::handle:vertical {{ background: {COLORS['line']}; border-radius: 4px; min-height: 30px; }}
+QScrollBar::handle:vertical:hover {{ background: {COLORS['muted']}; }}
 QScrollBar::add-line, QScrollBar::sub-line {{ height: 0; }}
 QScrollBar:horizontal {{ background: transparent; height: 9px; }}
-QScrollBar::handle:horizontal {{ background: #CBD5E1; border-radius: 4px; min-width: 30px; }}
+QScrollBar::handle:horizontal {{ background: {COLORS['line']}; border-radius: 4px; min-width: 30px; }}
 """
 
 # ---- subcontroles con iconos SVG reales (chevrons / calendario) -------------
@@ -259,7 +259,7 @@ QSpinBox::down-button, QDoubleSpinBox::down-button {{
     border-bottom-right-radius: 8px; background: transparent;
 }}
 QSpinBox::up-button:hover, QSpinBox::down-button:hover,
-QDoubleSpinBox::up-button:hover, QDoubleSpinBox::down-button:hover {{ background: #F1F5F9; }}
+QDoubleSpinBox::up-button:hover, QDoubleSpinBox::down-button:hover {{ background: {COLORS['surface_alt']}; }}
 QSpinBox::up-arrow, QDoubleSpinBox::up-arrow {{ width: 12px; height: 12px; image: url("__CHEV_UP__"); }}
 QSpinBox::down-arrow, QDoubleSpinBox::down-arrow {{ width: 12px; height: 12px; image: url("__CHEV_DOWN__"); }}
 
@@ -270,7 +270,7 @@ QDateEdit::up-button, QDateEdit::down-button {{
 }}
 QDateEdit::up-button {{ subcontrol-position: top right; border-top-right-radius: 8px; }}
 QDateEdit::down-button {{ subcontrol-position: bottom right; border-bottom-right-radius: 8px; }}
-QDateEdit::up-button:hover, QDateEdit::down-button:hover {{ background: #F1F5F9; }}
+QDateEdit::up-button:hover, QDateEdit::down-button:hover {{ background: {COLORS['surface_alt']}; }}
 QDateEdit::up-arrow {{ width: 12px; height: 12px; image: url("__CHEV_UP__"); }}
 QDateEdit::down-arrow {{ width: 12px; height: 12px; image: url("__CHEV_DOWN__"); }}
 
@@ -280,7 +280,7 @@ QDateEdit::drop-down {{
     width: 30px; border: none; border-left: 1px solid {COLORS['line']};
     border-top-right-radius: 8px; border-bottom-right-radius: 8px; background: transparent;
 }}
-QDateEdit::drop-down:hover {{ background: #F1F5F9; }}
+QDateEdit::drop-down:hover {{ background: {COLORS['surface_alt']}; }}
 
 /* fecha con popup de calendario: icono de calendario en vez de chevron */
 QDateEdit[cal="true"]::down-arrow {{ width: 15px; height: 15px; image: url("__CAL__"); }}
