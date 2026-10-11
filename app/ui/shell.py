@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import sqlite3
+from datetime import date
 
 from PySide6.QtCore import QSize, Qt, QTimer
 from PySide6.QtWidgets import (
@@ -25,6 +26,14 @@ from .reportes_page import ReportesPage
 from .tarjetas_page import TarjetasPage
 from .theme import COLORS, current_theme, qss
 from .widgets import Toast
+
+MESES_PILOTO = [
+    ("Agosto 2026", "2026-08"),
+    ("Setiembre 2026", "2026-09"),
+    ("Octubre 2026", "2026-10"),
+    ("Noviembre 2026", "2026-11"),
+]
+
 
 NAV = [
     # (id, sección, título, icono)
@@ -143,10 +152,18 @@ class Shell(QMainWindow):
         tbox.addWidget(self.titulo)
         tbox.addStretch(1)
 
-        pill = QLabel("Piloto · setiembre 2026")
-        pill.setObjectName("pill")
-        self.pill = pill
-        tbox.addWidget(pill)
+        meses_disponibles = {mes for _, mes in MESES_PILOTO}
+        mes_hoy = date.today().strftime("%Y-%m")
+        self.mes_activo = mes_hoy if mes_hoy in meses_disponibles else "2026-09"
+        self.mes_selector = QComboBox()
+        self.mes_selector.setObjectName("month_selector")
+        self.mes_selector.setAccessibleName("Mes del piloto")
+        self.mes_selector.setToolTip("Cambiar el mes de los datos piloto")
+        for etiqueta_mes, mes in MESES_PILOTO:
+            self.mes_selector.addItem(etiqueta_mes, mes)
+        self.mes_selector.setCurrentIndex(self.mes_selector.findData(self.mes_activo))
+        self.mes_selector.currentIndexChanged.connect(self._cambiar_mes)
+        tbox.addWidget(self.mes_selector)
 
         self.usuario = QComboBox()
         self.usuario.addItems(["Supervisor — J. de Producción",
@@ -313,6 +330,19 @@ class Shell(QMainWindow):
             actual.refresh()
             self._actualizar_geometria_pagina()
 
+    # ------------------------------------------------ periodo de análisis
+    def _cambiar_mes(self, indice: int):
+        mes = self.mes_selector.itemData(indice)
+        if not mes or mes == self.mes_activo:
+            return
+        self.mes_activo = mes
+        for pagina in getattr(self, "paginas", {}).values():
+            callback = getattr(pagina, "set_mes_activo", None)
+            if callable(callback):
+                callback(mes)
+        self.refresh_all()
+        self.toast(f"Mes piloto seleccionado: {self.mes_selector.currentText()}")
+
     # ------------------------------------------------ tema visual
     def _sync_theme_button(self):
         """Muestra el icono del tema al que se cambiaría al pulsar."""
@@ -411,10 +441,10 @@ class Shell(QMainWindow):
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
-        # En ventanas estrechas se oculta el chip secundario de la barra para
-        # reservar espacio para el selector de usuario y los botones de acción.
-        if hasattr(self, "pill"):
-            self.pill.setVisible(self.width() >= 1120)
+        if hasattr(self, "mes_selector"):
+            self.mes_selector.setMaximumWidth(
+                150 if self.width() >= 1120 else 138 if self.width() >= 820 else 122
+            )
         if hasattr(self, "usuario"):
             self.usuario.setMaximumWidth(300 if self.width() >= 1120 else 220 if self.width() >= 820 else 175)
         if hasattr(self, "page_scrolls"):
