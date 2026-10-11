@@ -88,7 +88,7 @@ class DashboardPage(QWidget):
 
         # ---------------- gráficos adaptables
         c1 = Card("Pareto de causas de no conformidad")
-        pareto = ParetoWidget(min_height=220)
+        pareto = ParetoWidget(min_height=210)
         pareto.set_datos(queries.pareto(self.conn))
         h = QLabel("Barras: % de prendas defectuosas por causa · Línea: % acumulado · Punteada ámbar: corte 80/20.")
         h.setProperty("cls", "hint")
@@ -97,7 +97,7 @@ class DashboardPage(QWidget):
         c1.vbox.addWidget(h)
 
         c2 = Card("Tasa de NC — As-Is → Piloto → To-Be")
-        tendencia = TendenciaWidget(min_height=220)
+        tendencia = TendenciaWidget(min_height=210)
         tendencia.set_datos(queries.tasa_mensual(self.conn), as_is, to_be)
         h2 = QLabel("Gris: línea base 2024 · Teal: piloto 2026 · Punteada verde: meta To-Be del sector exportador.")
         h2.setProperty("cls", "hint")
