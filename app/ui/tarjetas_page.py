@@ -31,11 +31,21 @@ COLUMNAS = [
 
 
 def _badges(t: dict) -> str:
-    return (f"<span style='background:{COLORS['purple_soft']};color:#6D28D9;"
-            f"font-size:9.5px;font-weight:800;padding:2px 8px;border-radius:6px'>{t['tipo']}</span> "
-            f"<span style='background:{COLORS['amber_soft'] if t['severidad'] == 'Moderada' else '#E0F2FE' if t['severidad'] == 'Leve' else COLORS['red_soft']};"
-            f"color:{'#B45309' if t['severidad'] == 'Moderada' else '#0369A1' if t['severidad'] == 'Leve' else '#B91C1C'};"
-            f"font-size:9.5px;font-weight:800;padding:2px 8px;border-radius:6px'>{t['severidad']}</span>")
+    """Badges con fondos y texto contrastados para ambos temas."""
+    severidad = t["severidad"]
+    if severidad == "Moderada":
+        fondo, texto = COLORS["severity_medium_bg"], COLORS["severity_medium_text"]
+    elif severidad == "Leve":
+        fondo, texto = COLORS["severity_low_bg"], COLORS["severity_low_text"]
+    else:
+        fondo, texto = COLORS["severity_high_bg"], COLORS["severity_high_text"]
+
+    return (
+        f"<span style='background:{COLORS['purple_soft']};color:{COLORS['purple_text']};"
+        f"font-size:9.5px;font-weight:800;padding:3px 8px;border-radius:6px'>{t['tipo']}</span> "
+        f"<span style='background:{fondo};color:{texto};"
+        f"font-size:9.5px;font-weight:800;padding:3px 8px;border-radius:6px'>{severidad}</span>"
+    )
 
 
 class DetalleTarjetaDialog(QDialog):
@@ -53,11 +63,11 @@ class DetalleTarjetaDialog(QDialog):
 
         ficha = QLabel(
             f"<table cellpadding='4'>"
-            f"<tr><td color='#64748B'>Máquina</td><td><b>{self.t['maquina']}</b></td>"
-            f"<td width='18'></td><td color='#64748B'>Origen</td><td><b>{self.t['origen']}</b></td></tr>"
-            f"<tr><td color='#64748B'>Responsable</td><td><b>{self.t['responsable']}</b></td>"
-            f"<td></td><td color='#64748B'>Estado</td><td><b>{self.t['estado']}</b></td></tr>"
-            f"<tr><td color='#64748B'>Creada</td><td colspan='4'>{self.t['creada_en']}</td></tr>"
+            f"<tr><td><span style='color:{COLORS['muted']}'>Máquina</span></td><td><b>{self.t['maquina']}</b></td>"
+            f"<td width='18'></td><td><span style='color:{COLORS['muted']}'>Origen</span></td><td><b>{self.t['origen']}</b></td></tr>"
+            f"<tr><td><span style='color:{COLORS['muted']}'>Responsable</span></td><td><b>{self.t['responsable']}</b></td>"
+            f"<td></td><td><span style='color:{COLORS['muted']}'>Estado</span></td><td><b>{self.t['estado']}</b></td></tr>"
+            f"<tr><td><span style='color:{COLORS['muted']}'>Creada</span></td><td colspan='4'>{self.t['creada_en']}</td></tr>"
             f"</table>")
         v.addWidget(ficha)
 
@@ -223,10 +233,9 @@ class TarjetasPage(QWidget):
 
             encabezado = QHBoxLayout()
             t = QLabel(titulo)
-            t.setStyleSheet("font-size:13px;font-weight:800;background:transparent;")
+            t.setProperty("cls", "kcol_title")
             n = QLabel(str(len(por_estado[estado])))
-            n.setStyleSheet("font-size:11px;font-weight:800;background:#fff;"
-                            "border-radius:10px;padding:1px 9px;color:#64748B;")
+            n.setProperty("cls", "kanban_count")
             encabezado.addWidget(t)
             encabezado.addStretch(1)
             encabezado.addWidget(n)
@@ -263,7 +272,7 @@ class TarjetasPage(QWidget):
         v.setContentsMargins(11, 10, 11, 10)
         v.setSpacing(6)
 
-        r1 = QLabel(f"<b style='color:#64748B;font-size:10.5px'>{checklists.codigo_tarjeta(t['id'])}</b>")
+        r1 = QLabel(f"<b style='color:{COLORS['muted']};font-size:10.5px'>{checklists.codigo_tarjeta(t['id'])}</b>")
         r1.setTextFormat(Qt.TextFormat.RichText)
         fila1 = QHBoxLayout()
         fila1.addWidget(r1)
