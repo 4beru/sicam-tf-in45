@@ -17,7 +17,7 @@ TEAL = QColor(COLORS["teal"])
 TEAL_CLARO = QColor(COLORS["teal_soft"])
 SLATE = QColor(COLORS["ink"])
 GRIS = QColor(COLORS["muted"])
-GRIS_CLARO = QColor(COLORS["surface_alt"])
+GRIS_CLARO = QColor(COLORS["line"])
 EJE = QColor(COLORS["line"])
 AMBAR = QColor(COLORS["amber"])
 VERDE = QColor(COLORS["green"])
@@ -322,7 +322,7 @@ class TendenciaWidget(QWidget):
         p.setFont(fuente)
 
         # eje X (cada 3 meses + piloto)
-        p.setPen(QPen(QColor("#94A3B8")))
+        p.setPen(QPen(QColor(COLORS["muted"])))
         for i, d in enumerate(pts):
             if (not d["piloto"] and i % 3 == 0) or d["piloto"]:
                 p.save()
@@ -480,7 +480,7 @@ class LineaEnVivoWidget(QWidget):
         # líneas punteadas de umbral
         p.setPen(QPen(QColor("#22C55E"), 1.3, Qt.PenStyle.DashLine))
         p.drawLine(padL, y(ok_hi), padL + cw, y(ok_hi))
-        p.setPen(QPen(QColor("#15803D")))
+        p.setPen(QPen(QColor(COLORS["good_text"])))
         p.drawText(QRectF(0, y(ok_hi) - 7, padL - 6, 14),
                    Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
                    f"A {self._fmt(ok_hi)}")
@@ -495,7 +495,7 @@ class LineaEnVivoWidget(QWidget):
         if tiene_lo:
             p.setPen(QPen(QColor("#EF4444"), 1.3, Qt.PenStyle.DashLine))
             p.drawLine(padL, y(a_lo), padL + cw, y(a_lo))
-            p.setPen(QPen(QColor("#B91C1C")))
+            p.setPen(QPen(QColor(COLORS["bad_text"])))
             p.drawText(QRectF(0, y(a_lo) - 7, padL - 6, 14),
                        Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
                        f"C {self._fmt(a_lo)}")
@@ -507,7 +507,7 @@ class LineaEnVivoWidget(QWidget):
         def X(i):
             return padL + (i / 59.0) * cw
 
-        teal = QColor("#0D9488")
+        teal = QColor(COLORS["teal"])
         rojo_p = QColor("#EF4444")
         ambar_p = QColor("#F59E0B")
         if n > 1:
@@ -545,7 +545,7 @@ def actualizar_colores_tema():
     TEAL_CLARO = QColor(COLORS["teal_soft"])
     SLATE = QColor(COLORS["ink"])
     GRIS = QColor(COLORS["muted"])
-    GRIS_CLARO = QColor(COLORS["surface_alt"])
+    GRIS_CLARO = QColor(COLORS["line"])
     EJE = QColor(COLORS["line"])
     AMBAR = QColor(COLORS["amber"])
     VERDE = QColor(COLORS["green"])
