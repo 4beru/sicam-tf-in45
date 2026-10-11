@@ -6,6 +6,7 @@ LIGHT_COLORS = {
     "line": "#E2E8F0", "ink": "#0F172A", "muted": "#64748B",
     "teal": "#0D9488", "teal_dark": "#0F766E", "teal_soft": "#CCFBF1",
     "primary_bg": "#0D9488", "primary_hover": "#0F766E", "primary_text": "#FFFFFF",
+    "disabled_bg": "#E2E8F0", "disabled_text": "#64748B",
     "amber": "#F59E0B", "amber_soft": "#FEF3C7", "red": "#EF4444",
     "red_soft": "#FEE2E2", "green": "#22C55E", "green_soft": "#DCFCE7",
     "purple": "#8B5CF6", "purple_soft": "#EDE9FE",
@@ -23,6 +24,7 @@ DARK_COLORS = {
     "line": "#2A3A50", "ink": "#E6EDF7", "muted": "#9AAEC4",
     "teal": "#2DD4BF", "teal_dark": "#5EEAD4", "teal_soft": "#123E3D",
     "primary_bg": "#0F766E", "primary_hover": "#115E59", "primary_text": "#FFFFFF",
+    "disabled_bg": "#253449", "disabled_text": "#7F91A8",
     "amber": "#FBBF24", "amber_soft": "#423316", "red": "#F87171",
     "red_soft": "#451D29", "green": "#4ADE80", "green_soft": "#143A2B",
     "purple": "#C4B5FD", "purple_soft": "#30264F",
@@ -136,7 +138,7 @@ QPushButton[cls="primary"] {{
     border: none; border-radius: 9px; padding: 8px 16px;
 }}
 QPushButton[cls="primary"]:hover {{ background: {COLORS['primary_hover']}; }}
-QPushButton[cls="primary"]:disabled {{ background: #94A3B8; }}
+QPushButton[cls="primary"]:disabled {{ background: {COLORS['disabled_bg']}; color: {COLORS['disabled_text']}; }}
 QPushButton[cls="ghost"] {{
     background: {COLORS['surface']}; color: {COLORS['slate']}; font-weight: 600;
     border: 1px solid {COLORS['line']}; border-radius: 9px; padding: 8px 14px;
