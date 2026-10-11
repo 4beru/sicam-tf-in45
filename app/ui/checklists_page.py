@@ -56,10 +56,10 @@ class DetalleChecklistDialog(QDialog):
         for it in items:
             fila = QHBoxLayout()
             marca = ("✔" if it["estado"] == "ok" else "⚠")
-            color = ("#15803D" if it["estado"] == "ok" else "#B91C1C")
+            color = (COLORS["good_text"] if it["estado"] == "ok" else COLORS["bad_text"])
             etiqueta = QLabel(f"<span style='color:{color};font-weight:800'>{marca}</span>"
                               f"&nbsp; {it['item']}"
-                              + (f" &nbsp;<span style='background:#FEF3C7;color:#B45309;"
+                              + (f" &nbsp;<span style='background:{COLORS['amber_soft']};color:{COLORS['warn_text']};"
                                  f"font-size:10px;font-weight:800;padding:2px 8px;"
                                  f"border-radius:6px'>{it['severidad']}</span>"
                                  if it["severidad"] else ""))
@@ -262,20 +262,20 @@ class ChecklistsPage(QWidget):
                       else f"faltan {meta - c['pct']:.0f} pts para la meta")
         self.lbl_stats.setText(
             f"<span style='font-size:19px;font-weight:800'>{c['hechas']} / {c['total']}</span>"
-            f"&nbsp;&nbsp;<span style='color:#64748B'>estaciones completadas hoy</span><br>"
+            f"&nbsp;&nbsp;<span style='color:{COLORS['muted']}'>estaciones completadas hoy</span><br>"
             f"<span style='font-size:19px;font-weight:800'>{fallas_hoy}</span>"
-            f"&nbsp;&nbsp;<span style='color:#64748B'>ítems con falla declarada</span><br>"
+            f"&nbsp;&nbsp;<span style='color:{COLORS['muted']}'>ítems con falla declarada</span><br>"
             f"<span style='font-size:19px;font-weight:800'>{tarj_hoy}</span>"
-            f"&nbsp;&nbsp;<span style='color:#64748B'>tarjetas TPM generadas hoy</span><br>"
-            f"<span style='color:{'#15803D' if en_meta else '#B45309'};font-weight:800'>{estado_txt}</span>")
+            f"&nbsp;&nbsp;<span style='color:{COLORS['muted']}'>tarjetas TPM generadas hoy</span><br>"
+            f"<span style='color:{COLORS['good_text'] if en_meta else COLORS['warn_text']};font-weight:800'>{estado_txt}</span>")
 
         recientes = checklists.checklists_recientes(self.conn, 15)
         filas = []
         for r in recientes:
             resultado = (
-                ("Sin fallas", "#15803D", True)
+                ("Sin fallas", COLORS["good_text"], True)
                 if not r["fallas"] else
-                (f"{r['fallas']} falla(s) → {r['tarjeta']}", "#B91C1C", True)
+                (f"{r['fallas']} falla(s) → {r['tarjeta']}", COLORS["bad_text"], True)
             )
             filas.append([
                 (f"#{r['id']:04d}", None, True), r["maquina"], r["operario"], r["turno"],
