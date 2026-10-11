@@ -19,7 +19,7 @@ def _num(n: int) -> str:
 
 
 # Escala de espaciado alineada con las páginas basadas en Card (p. ej. Checklists).
-DASHBOARD_GRID_GAP = 14
+DASHBOARD_GAP = 14
 DASHBOARD_CARD_MARGINS = (16, 14, 16, 14)
 DASHBOARD_CARD_SPACING = 10
 
@@ -65,7 +65,7 @@ class DashboardPage(QWidget):
         self.shell = shell
         self.layout_principal = QVBoxLayout(self)
         self.layout_principal.setContentsMargins(0, 0, 0, 0)
-        self.layout_principal.setSpacing(DASHBOARD_GRID_GAP)
+        self.layout_principal.setSpacing(DASHBOARD_GAP)
 
     def refresh(self):
         vaciar_layout(self.layout_principal)
@@ -95,7 +95,7 @@ class DashboardPage(QWidget):
         # 1. Calidad: tasa principal y los volúmenes que la explican.
         calidad = _dashboard_card("Calidad de producción")
         fila_tasa = QHBoxLayout()
-        fila_tasa.setSpacing(14)
+        fila_tasa.setSpacing(DASHBOARD_GAP)
         fila_tasa.addWidget(
             _metric_block("Tasa de no conformidad", f"{r['tasa']:.2f}%", 
                           f"As-Is {as_is:.2f}% · Meta {to_be:.2f}%", "summary_primary"),
@@ -118,7 +118,7 @@ class DashboardPage(QWidget):
         calidad.vbox.addLayout(fila_tasa)
 
         volúmenes = QHBoxLayout()
-        volúmenes.setSpacing(DASHBOARD_GRID_GAP)
+        volúmenes.setSpacing(DASHBOARD_GAP)
         volúmenes.addWidget(_metric_block("NC registradas · " + mes_et, _num(r["nc"]),
                                           f"Proceso con más NC: {proceso_top[0]}"), 1)
         volúmenes.addWidget(_metric_block("Prendas inspeccionadas", _num(r["insp"]),
@@ -128,7 +128,7 @@ class DashboardPage(QWidget):
         # 2. Cumplimiento: reúne los dos indicadores de ejecución operativa.
         cumplimiento = _dashboard_card("Cumplimiento operativo")
         metricas_cumplimiento = QHBoxLayout()
-        metricas_cumplimiento.setSpacing(DASHBOARD_GRID_GAP)
+        metricas_cumplimiento.setSpacing(DASHBOARD_GAP)
         chk = QVBoxLayout()
         chk.setSpacing(4)
         chk.addWidget(_metric_block("Checklists · hoy", f"{cump['pct']:.0f}%",
@@ -154,7 +154,7 @@ class DashboardPage(QWidget):
                           f"{causa_top[2]:.1f}%", causa_top[0])
         )
         fila_prioridades = QHBoxLayout()
-        fila_prioridades.setSpacing(DASHBOARD_GRID_GAP)
+        fila_prioridades.setSpacing(DASHBOARD_GAP)
         fila_prioridades.addWidget(
             _metric_block("Proceso con más NC", proceso_top[0],
                           f"{_num(proceso_top[1])} NC del mes"), 1
@@ -166,7 +166,7 @@ class DashboardPage(QWidget):
         prioridades.vbox.addLayout(fila_prioridades)
 
         grid_resumen = ResponsiveGrid(
-            min_item_width=340, max_columns=3, spacing=DASHBOARD_GRID_GAP
+            min_item_width=340, max_columns=3, spacing=DASHBOARD_GAP
         )
         grid_resumen.set_items([calidad, cumplimiento, prioridades])
         self.layout_principal.addWidget(grid_resumen)
@@ -191,7 +191,7 @@ class DashboardPage(QWidget):
         c2.vbox.addWidget(h2)
 
         grid_graficos = ResponsiveGrid(
-            min_item_width=460, max_columns=2, spacing=DASHBOARD_GRID_GAP
+            min_item_width=460, max_columns=2, spacing=DASHBOARD_GAP
         )
         grid_graficos.set_items([c1, c2])
         self.layout_principal.addWidget(grid_graficos)
@@ -227,7 +227,7 @@ class DashboardPage(QWidget):
         tabla_maqs.verticalHeader().setDefaultSectionSize(29)
         c4.vbox.addWidget(tabla_maqs)
         grid_rankings = ResponsiveGrid(
-            min_item_width=460, max_columns=2, spacing=14
+            min_item_width=460, max_columns=2, spacing=DASHBOARD_GAP
         )
         grid_rankings.set_items([c3, c4])
         self.layout_principal.addWidget(grid_rankings)
