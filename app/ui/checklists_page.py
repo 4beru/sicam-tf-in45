@@ -99,9 +99,8 @@ class ChecklistsPage(QWidget):
         banner.setProperty("cls", "banner")
         txt = QLabel(
             "El operario escanea el QR de su estación y el checklist se abre en su celular "
-            "(misma red wifi de planta, servida por este PC). Nada de papel: si un ítem falla, "
-            "pide foto de evidencia y genera la Tarjeta TPM automáticamente. "
-            "Equivale a las Figuras 38, 39 y 51 de la tesis.")
+            "(misma red wifi de planta, servida por este PC). Si un ítem falla, "
+            "pide foto de evidencia y genera automáticamente una tarjeta TPM.")
         txt.setProperty("cls", "banner_txt")
         txt.setWordWrap(True)
         banner.vbox.addWidget(txt)
@@ -167,7 +166,7 @@ class ChecklistsPage(QWidget):
         col_der = QVBoxLayout()
         col_der.setSpacing(14)
 
-        c_cumple = Card("Cumplimiento de checklists · hoy", "Meta ≥ 85% · Tabla 21")
+        c_cumple = Card("Cumplimiento de checklists · hoy")
         fila_donut = QHBoxLayout()
         fila_donut.setSpacing(22)
         self.donut = DonutWidget()
