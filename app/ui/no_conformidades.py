@@ -21,8 +21,9 @@ DER = Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
 class RegistroNCDialog(QDialog):
     """Formulario de registro rápido (~30 s): combos precargados, sin tipeo."""
 
-    def __init__(self, conn: sqlite3.Connection, parent=None):
+    def __init__(self, conn: sqlite3.Connection, parent=None, fecha: date | None = None):
         super().__init__(parent)
+        self.fecha_registro = fecha or date.today()
         self.conn = conn
         self.setWindowTitle("Registrar no conformidad")
         self.setMinimumWidth(430)
@@ -91,7 +92,7 @@ class RegistroNCDialog(QDialog):
             self.conn.execute(
                 "INSERT INTO no_conformidades (fecha, turno, proceso, causa, defecto, "
                 "operario, maquina, cantidad, observacion) VALUES (?,?,?,?,?,?,?,?,?)",
-                (date.today().isoformat(), self.turno.currentText(),
+                (self.fecha_registro.isoformat(), self.turno.currentText(),
                  self.proceso.currentText(), causa, self.defecto.text().strip(),
                  self.operario.currentText(), self.maquina.currentText(),
                  self.cantidad.value(), self.observacion.text().strip()))
@@ -103,8 +104,13 @@ class NoConformidadesPage(QWidget):
         super().__init__()
         self.conn = conn
         self.shell = shell
-        self.filtros = {"proceso": "", "turno": "", "causa": "", "desde": "", "hasta": ""}
+        mes_inicio, mes_fin = queries.limites_mes(self.shell.mes_activo)
+        self.filtros = {
+            "proceso": "", "turno": "", "causa": "",
+            "desde": mes_inicio, "hasta": mes_fin,
+        }
         self.qf = "all"
+        self.botones_qf: dict[str, QPushButton] = {}
 
         v = QVBoxLayout(self)
         v.setContentsMargins(0, 0, 0, 0)
@@ -133,6 +139,7 @@ class NoConformidadesPage(QWidget):
             b.setCheckable(True)
             b.setChecked(clave == "all")
             b.clicked.connect(lambda _=False, c=clave: self._set_qf(c))
+            self.botones_qf[clave] = b
             self.grupo_qf.addButton(b)
             fila1.addWidget(b)
         fila1.addStretch(1)
@@ -156,14 +163,14 @@ class NoConformidadesPage(QWidget):
         self.d_desde.setDisplayFormat("dd/MM/yyyy")
         self.d_desde.setCalendarPopup(True)
         self.d_desde.setProperty("cal", True)
-        self.d_desde.setDate(date(2024, 1, 1))
+        self.d_desde.setDate(date.fromisoformat(mes_inicio))
         self.d_desde.dateChanged.connect(
             lambda d: self._set_filtro("desde", d.toString("yyyy-MM-dd")))
         self.d_hasta = QDateEdit()
         self.d_hasta.setDisplayFormat("dd/MM/yyyy")
         self.d_hasta.setCalendarPopup(True)
         self.d_hasta.setProperty("cal", True)
-        self.d_hasta.setDate(date.today())
+        self.d_hasta.setDate(date.fromisoformat(mes_fin))
         self.d_hasta.dateChanged.connect(
             lambda d: self._set_filtro("hasta", d.toString("yyyy-MM-dd")))
         btn_nuevo = QPushButton("  Registrar no conformidad")
@@ -186,6 +193,20 @@ class NoConformidadesPage(QWidget):
         self.card_tabla = Card()
         v.addWidget(self.card_tabla, 1)
 
+    def set_mes_activo(self, mes: str):
+        """Sincroniza fechas y filtros cuando cambia el periodo del navbar."""
+        desde, hasta = queries.limites_mes(mes)
+        self.qf = "all"
+        for clave, boton in self.botones_qf.items():
+            boton.setChecked(clave == "all")
+        self.filtros["desde"], self.filtros["hasta"] = desde, hasta
+        self.d_desde.blockSignals(True)
+        self.d_hasta.blockSignals(True)
+        self.d_desde.setDate(date.fromisoformat(desde))
+        self.d_hasta.setDate(date.fromisoformat(hasta))
+        self.d_desde.blockSignals(False)
+        self.d_hasta.blockSignals(False)
+
     def _set_qf(self, clave: str):
         self.qf = clave
         # las vistas rápidas ajustan los combos visibles
@@ -203,7 +224,10 @@ class NoConformidadesPage(QWidget):
         self.refresh()
 
     def _registrar(self):
-        dlg = RegistroNCDialog(self.conn, self)
+        mes = self.shell.mes_activo
+        fecha = (date.today() if date.today().strftime("%Y-%m") == mes
+                 else date.fromisoformat(queries.limites_mes(mes)[0]))
+        dlg = RegistroNCDialog(self.conn, self, fecha=fecha)
         if dlg.exec() == QDialog.DialogCode.Accepted:
             self.shell.toast("No conformidad registrada — Pareto y tasa se recalculan al instante")
             self.shell.refresh_all(excepto="nc")
