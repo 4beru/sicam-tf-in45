@@ -68,7 +68,7 @@ class DashboardPage(QWidget):
             Kpi("Cumpl. checklist · hoy", f"{cump['pct']:.0f}%", "checklist",
                 [("✔ en meta" if en_cump else f"meta ≥ {m_cump[1]:.0f}%",
                   "good" if en_cump else "warn")],
-                f"{cump['hechas']} de {cump['total']} estaciones · Tabla 21"),
+                f"{cump['hechas']} de {cump['total']} estaciones"),
             Kpi("Cumpl. plan TPM", f"{plan_r['cumplimiento']:.0f}%", "calendar",
                 [("✔ en meta" if en_plan else f"meta ≥ {m_plan[1]:.0f}%",
                   "good" if en_plan else "warn")],
@@ -78,14 +78,14 @@ class DashboardPage(QWidget):
             Kpi("Proceso crítico", proceso_top[0], "wrench",
                 [(_num(proceso_top[1]) + " NC", "bad")]),
             Kpi("Alertas IoT activas", _num(iot.alertas_pendientes(self.conn)), "activity",
-                [("En vivo · simulador", "teal")], "sin atender · Fig. 47"),
+                [("En vivo · simulador", "teal")], "sin atender"),
         ], self.layout_principal)
 
         # ---------------- gráficos
         fila = QHBoxLayout()
         fila.setSpacing(14)
 
-        c1 = Card("Pareto de causas de no conformidad", "Tabla 6 · Fig. 9")
+        c1 = Card("Pareto de causas de no conformidad")
         pareto = ParetoWidget()
         pareto.set_datos(queries.pareto(self.conn))
         h = QLabel("Barras: % de prendas defectuosas por causa · Línea: % acumulado · Punteada ámbar: corte 80/20.")
@@ -94,7 +94,7 @@ class DashboardPage(QWidget):
         c1.vbox.addWidget(h)
         fila.addWidget(c1, 1)
 
-        c2 = Card("Tasa de NC — As-Is → Piloto → To-Be", "Tabla 22")
+        c2 = Card("Tasa de NC — As-Is → Piloto → To-Be")
         tendencia = TendenciaWidget()
         tendencia.set_datos(queries.tasa_mensual(self.conn), as_is, to_be)
         h2 = QLabel("Gris: línea base 2024 · Teal: piloto 2026 · Punteada verde: meta To-Be del sector exportador.")
@@ -108,7 +108,7 @@ class DashboardPage(QWidget):
         fila2 = QHBoxLayout()
         fila2.setSpacing(14)
 
-        c3 = Card("Operarios con más NC · Corte", "→ Capacitación")
+        c3 = Card("Operarios con más NC · Corte")
         filas_ops = []
         for i, (nombre, n) in enumerate(queries.ranking_operarios(self.conn), 1):
             causa_dom = self.conn.execute(
@@ -125,7 +125,7 @@ class DashboardPage(QWidget):
                                 filas_ops or [["—", "—", "—", "—"]]))
         fila2.addWidget(c3, 1)
 
-        c4 = Card("Máquinas con más NC asociadas", "Tabla 17")
+        c4 = Card("Máquinas con más NC asociadas")
         critic = {row["codigo"]: row["criticidad"]
                   for row in self.conn.execute("SELECT codigo, criticidad FROM maquinas")}
         filas_maqs = [[f"<b>{mid}</b>", critic.get(mid, "—"), (_num(n), DER)]
