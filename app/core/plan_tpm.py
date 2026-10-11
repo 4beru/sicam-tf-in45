@@ -1,4 +1,4 @@
-"""Motor del plan de mantenimiento preventivo TPM (Figura 42 de la tesis).
+"""Motor del plan de mantenimiento preventivo TPM.
 
 Reglas: cada (máquina, actividad) tiene una frecuencia en días; la próxima
 fecha vence en `última ejecución + frecuencia`. Las tareas del mes se derivan
