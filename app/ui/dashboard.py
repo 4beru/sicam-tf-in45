@@ -19,7 +19,7 @@ def _num(n: int) -> str:
 
 
 # Escala de espaciado alineada con las páginas basadas en Card (p. ej. Checklists).
-DASHBOARD_GAP = 14
+DASHBOARD_GAP = 10
 DASHBOARD_CARD_MARGINS = (16, 14, 16, 14)
 DASHBOARD_CARD_SPACING = 10
 
