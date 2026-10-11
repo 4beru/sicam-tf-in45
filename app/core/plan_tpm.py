@@ -29,10 +29,14 @@ def _fin_de_mes(y: int, m: int) -> date:
     return date(y, m, calendar.monthrange(y, m)[1])
 
 
-def ultima_ejecucion(conn: sqlite3.Connection, maquina: str, actividad: str) -> date | None:
-    r = conn.execute(
-        "SELECT MAX(fecha) FROM plan_ejecuciones WHERE maquina = ? AND actividad = ?",
-        (maquina, actividad)).fetchone()
+def ultima_ejecucion(conn: sqlite3.Connection, maquina: str, actividad: str,
+                     hasta: date | None = None) -> date | None:
+    sql = "SELECT MAX(fecha) FROM plan_ejecuciones WHERE maquina = ? AND actividad = ?"
+    params: list = [maquina, actividad]
+    if hasta is not None:
+        sql += " AND fecha <= ?"
+        params.append(hasta.isoformat())
+    r = conn.execute(sql, params).fetchone()
     return date.fromisoformat(r[0]) if r and r[0] else None
 
 
@@ -69,7 +73,7 @@ def tareas_del_mes(conn: sqlite3.Connection, hoy: date | None = None) -> list[di
     tareas: list[dict] = []
     for f in conn.execute("SELECT * FROM frecuencias ORDER BY maquina"):
         freq = f["frecuencia_dias"]
-        ultima = ultima_ejecucion(conn, f["maquina"], f["actividad"])
+        ultima = ultima_ejecucion(conn, f["maquina"], f["actividad"], hasta=hoy)
         if ultima is None:
             proxima = _base_inicial(f["maquina"], f["actividad"], freq, inicio)
         else:
