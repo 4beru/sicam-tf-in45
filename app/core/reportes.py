@@ -165,7 +165,7 @@ def pdf_indicadores(conn: sqlite3.Connection, ruta: Path | str,
 
 def pdf_pareto(conn: sqlite3.Connection, ruta: Path | str,
                mes: str | None = None) -> Path:
-    """Pareto de causas del mes seleccionado, con % acumulado.""""
+    """Pareto de causas del mes seleccionado, con % acumulado."""
     from reportlab.graphics.charts.barcharts import VerticalBarChart
     from reportlab.graphics.shapes import Drawing as RLDrawing
     from reportlab.graphics.shapes import Line, String
