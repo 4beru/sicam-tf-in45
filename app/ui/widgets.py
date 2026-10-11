@@ -6,7 +6,7 @@ from html import unescape
 
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (
-    QFrame, QGridLayout, QHBoxLayout, QHeaderView, QLabel, QSizePolicy,
+    QFrame, QHBoxLayout, QHeaderView, QLabel, QSizePolicy,
     QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget,
 )
 
