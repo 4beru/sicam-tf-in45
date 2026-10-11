@@ -29,7 +29,6 @@ class ParetoWidget(QWidget):
     def __init__(self, min_height: int = 290):
         super().__init__()
         self.setMinimumHeight(min_height)
-        self.setSizePolicy(self.sizePolicy().horizontalPolicy(), self.sizePolicy().verticalPolicy())
         self._datos: list[tuple[str, int, float]] = []  # (causa, prendas, pct)
 
     def set_datos(self, datos: list[tuple[str, int, float]]):
