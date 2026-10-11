@@ -10,7 +10,7 @@ import sqlite3
 from pathlib import Path
 
 # ---------------------------------------------------------------- catálogos
-# Coinciden con la Tabla 6 de la tesis (TF-IN45) y con el catálogo de la maqueta.
+# Catálogos iniciales del sistema.
 PROCESOS = ["Costura", "Corte", "Etiquetado", "Acabado", "Calidad"]
 TURNOS = ["Mañana", "Tarde", "Noche"]
 CAUSAS = [
@@ -139,7 +139,7 @@ CREATE TABLE IF NOT EXISTS tarjetas_tpm (
 );
 CREATE INDEX IF NOT EXISTS idx_tarj_estado ON tarjetas_tpm (estado);
 
--- ---- fase 3: motor del plan de mantenimiento preventivo (Fig. 42) ----
+-- ---- fase 3: motor del plan de mantenimiento preventivo ----
 CREATE TABLE IF NOT EXISTS plan_ejecuciones (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     maquina     TEXT NOT NULL,
@@ -151,7 +151,7 @@ CREATE TABLE IF NOT EXISTS plan_ejecuciones (
 );
 CREATE INDEX IF NOT EXISTS idx_exe_maquina ON plan_ejecuciones (maquina, actividad);
 
--- ---- fase 4: monitor IoT (Fig. 47) ----
+-- ---- fase 4: monitor IoT ----
 CREATE TABLE IF NOT EXISTS iot_umbrales (
     variable   TEXT PRIMARY KEY,
     unidad     TEXT NOT NULL,
