@@ -55,3 +55,17 @@ def test_limites_mes_usa_fin_real_del_calendario():
     assert queries.limites_mes("2026-08") == ("2026-08-01", "2026-08-31")
     assert queries.limites_mes("2026-11") == ("2026-11-01", "2026-11-30")
     assert queries.limites_mes("2024-02") == ("2024-02-01", "2024-02-29")
+
+
+
+def test_auditoria_detecta_desajuste_entre_produccion_y_nc(conn):
+    with conn:
+        conn.execute(
+            "UPDATE produccion SET nc_detectadas = nc_detectadas + 1 "
+            "WHERE fecha BETWEEN '2026-08-01' AND '2026-08-31' "
+            "AND proceso = 'Costura' AND origen_dato = 'semilla' "
+            "AND turno = 'Mañana' LIMIT 1"
+        )
+    resultado = integridad.auditar_y_reparar(conn)
+    assert any("Producción y no conformidades de la semilla no coinciden" in x
+               for x in resultado["problemas"])
