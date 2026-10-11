@@ -78,7 +78,7 @@ class PlanPage(QWidget):
         self.cabecera = Card()
         v.addWidget(self.cabecera)
 
-        self.card_grid = Card("Plan mensual de mantenimiento preventivo", "Fig. 42")
+        self.card_grid = Card("Plan mensual de mantenimiento preventivo")
         v.addWidget(self.card_grid, 1)
 
     # ------------------------------------------------ refresco
