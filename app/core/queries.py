@@ -30,10 +30,19 @@ def limites_mes(mes_iso: str) -> tuple[str, str]:
     return f"{anio:04d}-{numero:02d}-01", f"{anio:04d}-{numero:02d}-{ultimo:02d}"
 
 
-def fecha_referencia_mes(mes_iso: str) -> date:
-    """Fecha de corte: hoy en el mes actual o último día del mes consultado."""
-    hoy = date.today()
-    return hoy if mes_iso == hoy.strftime("%Y-%m") else date.fromisoformat(limites_mes(mes_iso)[1])
+def fecha_referencia_mes(mes_iso: str, hoy: date | None = None) -> date:
+    """Fecha de corte coherente para meses pasados, actual y futuros.
+
+    Mes pasado: cierre del periodo; mes actual: hoy; mes futuro: primer día.
+    """
+    hoy = hoy or date.today()
+    mes_actual = hoy.strftime("%Y-%m")
+    inicio, fin = limites_mes(mes_iso)
+    if mes_iso == mes_actual:
+        return hoy
+    if mes_iso > mes_actual:
+        return date.fromisoformat(inicio)
+    return date.fromisoformat(fin)
 
 
 def pareto(conn: sqlite3.Connection, desde: str | None = None,
