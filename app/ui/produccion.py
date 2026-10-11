@@ -6,8 +6,8 @@ from datetime import date
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QComboBox, QDateEdit, QHBoxLayout, QLabel, QPushButton, QSpinBox,
-    QVBoxLayout, QWidget,
+    QComboBox, QDateEdit, QHBoxLayout, QLabel, QPushButton, QSizePolicy,
+    QSpinBox, QVBoxLayout, QWidget,
 )
 
 from ..core import db, queries
@@ -55,19 +55,23 @@ class ProduccionPage(QWidget):
         card_form.vbox.addWidget(h)
         v.addWidget(card_form)
 
-        # ---------------- tabla + mini tendencia
-        fila2 = QHBoxLayout()
-        fila2.setSpacing(14)
-
-        self.card_tabla = Card("Producción y tasa de NC · últimos registros")
-        fila2.addWidget(self.card_tabla, 3)
+        # ---------------- tendencia arriba; tabla al final
+        columna_resultados = QVBoxLayout()
+        columna_resultados.setSpacing(14)
 
         self.card_chart = Card("Tasa diaria — últimos 14 días")
         self.chart = TendenciaWidget()
-        self.chart.setMinimumHeight(240)
+        self.chart.setMinimumHeight(290)
         self.card_chart.vbox.addWidget(self.chart)
-        fila2.addWidget(self.card_chart, 2)
-        v.addLayout(fila2, 1)
+        # Evita que la cantidad de filas de la tabla estire este gráfico.
+        self.card_chart.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Maximum
+        )
+        columna_resultados.addWidget(self.card_chart)
+
+        self.card_tabla = Card("Producción y tasa de NC · últimos registros")
+        columna_resultados.addWidget(self.card_tabla)
+        v.addLayout(columna_resultados, 1)
 
     def _agregar(self):
         fecha = self.f_fecha.date().toString("yyyy-MM-dd")
@@ -97,6 +101,26 @@ class ProduccionPage(QWidget):
             ])
         nueva = tabla(["Fecha", "Proceso", "Turno", "Inspeccionadas", "NC", "Tasa NC"],
                       datos or [["—"] * 6])
+
+        # Encabezados centrados; fechas y turnos centrados, texto descriptivo a
+        # la izquierda y métricas numéricas alineadas a la derecha.
+        nueva.horizontalHeader().setDefaultAlignment(Qt.AlignmentFlag.AlignCenter)
+        for fila_idx in range(nueva.rowCount()):
+            fecha_item = nueva.item(fila_idx, 0)
+            turno_item = nueva.item(fila_idx, 2)
+            tasa_item = nueva.item(fila_idx, 5)
+            if fecha_item is not None:
+                fecha_item.setTextAlignment(
+                    Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
+                )
+            if turno_item is not None:
+                turno_item.setTextAlignment(
+                    Qt.AlignmentFlag.AlignCenter | Qt.AlignmentFlag.AlignVCenter
+                )
+            if tasa_item is not None:
+                # Se conserva el color de severidad y se corrige solo la alineación.
+                tasa_item.setTextAlignment(DER)
+
         vaciar_layout(self.card_tabla.vbox)
         self.card_tabla.vbox.addWidget(nueva)
 
