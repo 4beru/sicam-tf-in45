@@ -199,17 +199,22 @@ class Toast(QLabel):
 
 
 def fila_kpis(kpis: list[Kpi], parent_layout: QVBoxLayout, por_fila: int = 3):
-    """Agrega filas de KPIs con separación uniforme, `por_fila` por fila.
-
-    Las filas incompletas se rellenan con stretch para que cada KPI conserve
-    el ancho de su columna (sin estirarse a todo el ancho).
-    """
+    """Agrega filas de KPIs uniformes y centra la última fila si le falta una tarjeta."""
     for i in range(0, len(kpis), por_fila):
         h = QHBoxLayout()
         h.setSpacing(12)
         chunk = kpis[i:i + por_fila]
-        for k in chunk:
-            h.addWidget(k, 1)
-        for _ in range(por_fila - len(chunk)):
+
+        # En una cuadrícula de cuatro columnas, centrar la última fila de tres
+        # conserva el ancho de cada tarjeta y evita dejarla pegada al margen.
+        if por_fila >= 4 and len(chunk) == por_fila - 1:
             h.addStretch(1)
+            for k in chunk:
+                h.addWidget(k, 2)
+            h.addStretch(1)
+        else:
+            for k in chunk:
+                h.addWidget(k, 1)
+            for _ in range(por_fila - len(chunk)):
+                h.addStretch(1)
         parent_layout.addLayout(h)
