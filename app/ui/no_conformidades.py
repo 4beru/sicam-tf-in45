@@ -64,7 +64,7 @@ class RegistroNCDialog(QDialog):
 
         form.addRow("Proceso *", self.proceso)
         form.addRow("Turno *", self.turno)
-        form.addRow("Causa raíz (Tabla 6) *", self.causa)
+        form.addRow("Causa raíz *", self.causa)
         form.addRow("Defecto específico *", self.defecto)
         form.addRow("Operario", self.operario)
         form.addRow("Máquina", self.maquina)
@@ -240,14 +240,14 @@ class NoConformidadesPage(QWidget):
         total = sum(r["cantidad"] for r in filas)
         self.resumen.setText(
             f"<b>{len(filas)}</b> registros · <b>{total:,}</b> prendas NC "
-            f"— el registro usa el catálogo de causas de la Tabla 6".replace(",", " "))
+            f"— el registro usa el catálogo de causas".replace(",", " "))
 
         from .widgets import tabla
         datos = [[
             r["fecha"], r["turno"], r["proceso"], r["causa"], r["defecto"],
             r["operario"], r["maquina"], (f"{r['cantidad']}", DER),
         ] for r in filas]
-        nueva = tabla(["Fecha", "Turno", "Proceso", "Causa (Tabla 6)", "Defecto específico",
+        nueva = tabla(["Fecha", "Turno", "Proceso", "Causa", "Defecto específico",
                        "Operario", "Máquina", "Cant."],
                       datos or [["—"] * 8])
         # reemplazar la tabla anterior
