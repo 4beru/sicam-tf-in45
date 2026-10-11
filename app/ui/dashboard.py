@@ -93,9 +93,9 @@ class DashboardPage(QWidget):
         estado_tasa.setSpacing(5)
         if delta is not None:
             if delta < 0:
-                detalle_delta, tipo_delta = f"▼ {abs(delta):.2f} puntos vs mes anterior", "good"
+                detalle_delta, tipo_delta = f"▼ {abs(delta):.2f} pts vs ant.", "good"
             elif delta > 0:
-                detalle_delta, tipo_delta = f"▲ {delta:.2f} puntos vs mes anterior", "bad"
+                detalle_delta, tipo_delta = f"▲ {delta:.2f} pts vs ant.", "bad"
             else:
                 detalle_delta, tipo_delta = "Sin cambio vs mes anterior", "info"
             estado_tasa.addWidget(chip(detalle_delta, tipo_delta))
@@ -143,8 +143,7 @@ class DashboardPage(QWidget):
         prioridades.vbox.setSpacing(8)
         prioridades.vbox.addWidget(
             _metric_block("Causa principal de NC",
-                          f"{causa_top[2]:.1f}% · {causa_top[0]}",
-                          "Principal contribución al Pareto")
+                          f"{causa_top[2]:.1f}%", causa_top[0])
         )
         fila_prioridades = QHBoxLayout()
         fila_prioridades.setSpacing(16)
@@ -232,4 +231,3 @@ class DashboardPage(QWidget):
         )
         grid_rankings.set_items([c3, c4])
         self.layout_principal.addWidget(grid_rankings)
-        self.layout_principal.addStretch(1)
