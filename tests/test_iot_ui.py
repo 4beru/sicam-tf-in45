@@ -190,3 +190,20 @@ def test_sin_lecturas_maquina(shell, conn):
     QApplication.processEvents()
 
     assert page._gauges["tension"]["valor"].text() == "—"
+
+def test_selector_mes_sincroniza_vistas_operativas(shell):
+    combo = shell.mes_selector
+    assert combo.count() == 4
+
+    indice = combo.findData("2026-11")
+    assert indice >= 0
+    combo.setCurrentIndex(indice)
+    QApplication.processEvents()
+
+    assert shell.mes_activo == "2026-11"
+    nc = shell.paginas["nc"]
+    assert nc.filtros["desde"] == "2026-11-01"
+    assert nc.filtros["hasta"] == "2026-11-30"
+    produccion = shell.paginas["prod"]
+    assert produccion.f_fecha.date().toString("yyyy-MM-dd") == "2026-11-01"
+
