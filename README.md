@@ -1,10 +1,9 @@
 # SICAM — Sistema Integral de Calidad y Mantenimiento
 
 Aplicación de escritorio (PySide6) para **Createl Trading S.A.C.** — trabajo TF-IN45.
-Digitaliza las herramientas del Capítulo III de la tesis (TPM, Poka Yoke, IoT) para
-producir el Capítulo IV de validación con resultados.
+Integra herramientas de calidad, mantenimiento preventivo (TPM), Poka Yoke e IoT en una aplicación de escritorio.
 
-> v1.0 — Fases 1–4 completas: monitor IoT (Fig. 47) + empaquetado .exe (GitHub Actions).
+> v1.0 — Módulos principales completos: monitor IoT y empaquetado .exe (GitHub Actions).
 
 ## Ejecutar
 
@@ -33,15 +32,15 @@ Variables de entorno: `SICAM_DATA` (carpeta de datos) y `SICAM_DB` (archivo .db)
 
 | Módulo | Detalle |
 |---|---|
-| **Dashboard** | KPIs del mes (incluye cumplimiento de checklists), Pareto de causas (Tabla 6), tendencia As-Is → Piloto → To-Be (Tabla 22), rankings de operarios y máquinas |
+| **Dashboard** | KPIs del mes (incluye cumplimiento de checklists), Pareto de causas, tendencia As-Is → Piloto → To-Be, rankings de operarios y máquinas |
 | **No conformidades** | Vistas rápidas ("este turno · Costura"), filtros por proceso/turno/causa/fechas, registro en ~30 s |
 | **Producción diaria** | Registro de prendas inspeccionadas por proceso/turno con tasa NC calculada |
 | **Checklists** | QR por estación + servidor LAN embebido: el operario llena el checklist en su celular, con foto de evidencia obligatoria por falla; cumplimiento del día vs meta ≥85% |
-| **Tarjetas TPM** | Kanban Abiertas / En atención / Cerradas (Fig. 43-45); nacen solas desde las fallas de checklist y muestran la acción requerida según severidad + foto de evidencia |
+| **Tarjetas TPM** | Kanban Abiertas / En atención / Cerradas; nacen solas desde las fallas de checklist y muestran la acción requerida según severidad + foto de evidencia |
 | **Máquinas** | Ficha por equipo: criticidad, estado de calibración (>90 días = vencida), tarjetas abiertas, historial 12 meses y próxima tarea del plan |
-| **Plan TPM** | Grid S1–S4 del mes generado por el motor (última ejecución + frecuencia, Fig. 42); celdas clicables para registrar ejecuciones; cumplimiento vs meta ≥85% |
+| **Plan TPM** | Grid S1–S4 del mes generado por el motor (última ejecución + frecuencia); celdas clicables para registrar ejecuciones; cumplimiento vs meta ≥85% |
 | **Reportes** | PDFs generados con reportlab: plan mensual, Pareto de causas y resumen de indicadores (As-Is/To-Be/actual); NC exportable a Excel bidireccional |
-| **Monitor IoT** | 4 gauges en vivo (tensión, velocidad, temperatura, vibración) con zonas A/C de la Fig. 47, gráfico de la última hora, registro de alertas A/C/D con creación de tarjetas TPM y registro de NC, umbrales configurables; lecturas por simulador o por ESP32 vía `POST /iot/lectura` del servidor LAN |
+| **Monitor IoT** | 4 gauges en vivo (tensión, velocidad, temperatura, vibración) con zonas configurables, gráfico de la última hora, registro de alertas A/C/D con creación de tarjetas TPM y registro de NC, umbrales configurables; lecturas por simulador o por ESP32 vía `POST /iot/lectura` del servidor LAN |
 | **Datos e importación** | Plantilla XLSX con listas desplegables, importador con **dry-run**, upsert sin duplicados, exportación a Excel y semilla sintética |
 
 ## Estructura
@@ -51,14 +50,14 @@ app/
 ├── main.py            # punto de entrada
 ├── smoke.py           # smoke test offscreen + capturas
 ├── core/              # lógica sin Qt (testeable, sirve también a la CLI y al servidor web)
-│   ├── db.py          # esquema SQLite + catálogos (Tabla 6)
+│   ├── db.py          # esquema SQLite + catálogos
 │   ├── seed.py        # semilla sintética: 2024 (10.68%) + piloto 2026 + checklists/tarjetas
 │   ├── plantilla.py   # genera plantilla_sicam.xlsx / exporta NC a Excel
 │   ├── importador.py  # leer → validar (dry-run) → importar (upsert)
 │   ├── queries.py     # analítica: Pareto, tasas, rankings, metas, firma de reactividad
 │   ├── checklists.py  # checklists → tarjetas TPM (regla de oro), cumplimiento, kanban
-│   ├── plan_tpm.py    # motor del plan preventivo (Fig. 42): frecuencias → calendario
-│   ├── iot.py         # monitor IoT (Fig. 47): umbrales A/C/D, simulador y alertas
+│   ├── plan_tpm.py    # motor del plan preventivo: frecuencias → calendario
+│   ├── iot.py         # monitor IoT: umbrales A/C/D, simulador y alertas
 │   └── reportes.py    # PDFs con reportlab (plan, indicadores, Pareto)
 ├── web/
 │   └── servidor.py    # servidor LAN (Flask) + formulario móvil mobile-first
@@ -75,8 +74,8 @@ app/
 
 - [x] **Fase 1** — Núcleo + NC + Dashboard + importador Excel
 - [x] **Fase 2** — Checklists móviles (QR + servidor LAN embebido) y tarjetas TPM
-- [x] **Fase 3** — Máquinas + motor de plan TPM (Fig. 42) + reportes PDF
-- [x] **Fase 4a** — Monitor IoT (Fig. 47): gauges en vivo, alertas A/C/D, simulador y ESP32 vía HTTP
+- [x] **Fase 3** — Máquinas + motor de plan TPM + reportes PDF
+- [x] **Fase 4a** — Monitor IoT: gauges en vivo, alertas A/C/D, simulador y ESP32 vía HTTP
 - [x] **Fase 4b** — Empaquetado `.exe` (PyInstaller + GitHub Actions)
 
 ## Monitor IoT y ESP32
@@ -84,7 +83,7 @@ app/
 El módulo **Monitor IoT** se alimenta de dos fuentes: el **simulador** integrado
 (activo por defecto, cada 2 s) y un **ESP32 real**, que publica lecturas por HTTP
 al mismo servidor LAN del checklist (variables: `tension`, `velocidad`,
-`temperatura`, `vibracion`; niveles A/C/D de la Fig. 47, umbrales configurables
+`temperatura`, `vibracion`; niveles A/C/D y umbrales configurables
 en la página):
 
 ```bash
