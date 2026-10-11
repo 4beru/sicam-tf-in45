@@ -58,7 +58,7 @@ class Card(QFrame):
 
 
 class ResponsiveGrid(QWidget):
-    """Reorganiza tarjetas según el ancho real disponible, sin reconstruirlas."""
+    """Distribuye tarjetas en filas flexibles con gaps uniformes y reflujo responsive."""
 
     def __init__(
         self,
@@ -74,31 +74,25 @@ class ResponsiveGrid(QWidget):
         self._max_columns = max(1, max_columns)
         self._spacing = max(0, spacing)
         self._center_items = center_items
-        self._center_max_width: int | None = None
         self._columns = 0
 
-        self._grid = QGridLayout(self)
-        self._grid.setContentsMargins(0, 0, 0, 0)
-        self._grid.setHorizontalSpacing(self._spacing)
-        self._grid.setVerticalSpacing(self._spacing)
-        # The grid must grow horizontally, but its vertical extent should stay
-        # content-driven. Preferred allows the dashboard rows to absorb surplus
-        # height from the page stack, which can create large empty cards.
+        # El mismo patrón que las secciones convencionales: un layout vertical
+        # contiene filas horizontales. Así los gaps son reales y consistentes,
+        # sin pistas de columnas duplicadas que complican la distribución.
+        self._rows = QVBoxLayout(self)
+        self._rows.setContentsMargins(0, 0, 0, 0)
+        self._rows.setSpacing(self._spacing)
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Maximum)
 
     def set_items(self, items: list[QWidget]) -> None:
         self._items = list(items)
-        self._center_max_width = (
-            min(widget.maximumWidth() for widget in self._items)
-            if self._center_items and self._items else None
-        )
         self._columns = 0
         self._reflow(force=True)
 
     def _column_count(self) -> int:
         width = max(1, self.contentsRect().width())
-        # Durante la construcción todavía no hay un ancho real. Usar la
-        # cantidad máxima evita calcular un sizeHint inicial exageradamente alto.
+        # Durante la construcción, antes de tener un ancho real, evita producir
+        # un sizeHint inicial exageradamente alto por apilar todas las tarjetas.
         if width < self._min_item_width and not self.isVisible():
             return self._max_columns
         return max(
@@ -109,52 +103,50 @@ class ResponsiveGrid(QWidget):
             ),
         )
 
-    def _size_centered_items(self, columns: int) -> None:
-        if not self._center_items or not self._items:
-            return
-        width = max(1, self.contentsRect().width())
-        cell_width = max(
-            self._min_item_width,
-            (width - self._spacing * (columns - 1)) // columns,
-        )
-        max_width = self._center_max_width or cell_width
-        item_width = max(self._min_item_width, min(max_width, cell_width))
-        for widget in self._items:
-            if widget.minimumWidth() != item_width or widget.maximumWidth() != item_width:
-                widget.setFixedWidth(item_width)
+    def _clear_rows(self) -> None:
+        """Desmonta solo los layouts de fila; las tarjetas se conservan vivas."""
+        while self._rows.count():
+            item = self._rows.takeAt(0)
+            row = item.layout()
+            if row is None:
+                continue
+            while row.count():
+                row.takeAt(0)
+            row.setParent(None)
+            row.deleteLater()
 
     def _reflow(self, force: bool = False) -> None:
-        if not self._items:
-            return
         columns = self._column_count()
         if not force and columns == self._columns:
-            # Aunque no cambie el número de columnas, las tarjetas KPI dejan
-            # de crecer al alcanzar su ancho máximo y permanecen uniformes.
-            self._size_centered_items(columns)
             return
 
-        while self._grid.count():
-            self._grid.takeAt(0)
+        self._clear_rows()
+        if not self._items:
+            self._columns = 0
+            self.updateGeometry()
+            return
 
-        # Cada columna lógica usa dos pistas para centrar también las filas
-        # incompletas (por ejemplo, tres tarjetas debajo de cuatro).
-        tracks = self._max_columns * 2
-        for col in range(tracks):
-            self._grid.setColumnStretch(col, 1 if col < columns * 2 else 0)
+        for start in range(0, len(self._items), columns):
+            row_items = self._items[start:start + columns]
+            missing = columns - len(row_items)
+            row = QHBoxLayout()
+            row.setContentsMargins(0, 0, 0, 0)
+            row.setSpacing(self._spacing)
 
-        self._size_centered_items(columns)
-        for index, widget in enumerate(self._items):
-            row = index // columns
-            col_in_row = index % columns
-            items_in_row = min(columns, len(self._items) - row * columns)
-            offset = columns - items_in_row if self._center_items and items_in_row < columns else 0
-            col = offset + col_in_row * 2
-            if self._center_items:
-                self._grid.addWidget(
-                    widget, row, col, 1, 2, Qt.AlignmentFlag.AlignHCenter
-                )
+            # Los stretch representan celdas vacías. Esto mantiene el mismo
+            # ancho para cada tarjeta y centra filas incompletas si se solicita.
+            if self._center_items and missing:
+                row.addStretch(missing)
+                for widget in row_items:
+                    row.addWidget(widget, 2)
+                row.addStretch(missing)
             else:
-                self._grid.addWidget(widget, row, col, 1, 2)
+                for widget in row_items:
+                    row.addWidget(widget, 1)
+                if missing:
+                    row.addStretch(missing)
+
+            self._rows.addLayout(row)
 
         self._columns = columns
         self.updateGeometry()
@@ -162,8 +154,6 @@ class ResponsiveGrid(QWidget):
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
         self._reflow()
-
-
 class Kpi(QFrame):
     """Tarjeta de indicador: nombre, valor grande y metadatos (chips + texto)."""
 
