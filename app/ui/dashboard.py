@@ -18,6 +18,20 @@ def _num(n: int) -> str:
     return f"{n:,}".replace(",", " ")
 
 
+# Escala de espaciado alineada con las páginas basadas en Card (p. ej. Checklists).
+DASHBOARD_GRID_GAP = 14
+DASHBOARD_CARD_MARGINS = (16, 14, 16, 14)
+DASHBOARD_CARD_SPACING = 10
+
+
+def _dashboard_card(titulo: str) -> Card:
+    """Crea una tarjeta del Dashboard con el mismo padding base que el resto de la UI."""
+    card = Card(titulo)
+    card.vbox.setContentsMargins(*DASHBOARD_CARD_MARGINS)
+    card.vbox.setSpacing(DASHBOARD_CARD_SPACING)
+    return card
+
+
 def _metric_block(titulo: str, valor: str, detalle: str = "", value_cls: str = "summary_value") -> QWidget:
     """Bloque compacto para componer resúmenes que aprovechan el ancho de una tarjeta."""
     bloque = QWidget()
@@ -51,7 +65,7 @@ class DashboardPage(QWidget):
         self.shell = shell
         self.layout_principal = QVBoxLayout(self)
         self.layout_principal.setContentsMargins(0, 0, 0, 0)
-        self.layout_principal.setSpacing(14)
+        self.layout_principal.setSpacing(DASHBOARD_GRID_GAP)
 
     def refresh(self):
         vaciar_layout(self.layout_principal)
@@ -79,9 +93,7 @@ class DashboardPage(QWidget):
         alertas_iot = iot.alertas_pendientes(self.conn)
 
         # 1. Calidad: tasa principal y los volúmenes que la explican.
-        calidad = Card("Calidad de producción")
-        calidad.vbox.setContentsMargins(16, 12, 16, 12)
-        calidad.vbox.setSpacing(8)
+        calidad = _dashboard_card("Calidad de producción")
         fila_tasa = QHBoxLayout()
         fila_tasa.setSpacing(14)
         fila_tasa.addWidget(
@@ -106,7 +118,7 @@ class DashboardPage(QWidget):
         calidad.vbox.addLayout(fila_tasa)
 
         volúmenes = QHBoxLayout()
-        volúmenes.setSpacing(18)
+        volúmenes.setSpacing(DASHBOARD_GRID_GAP)
         volúmenes.addWidget(_metric_block("NC registradas · " + mes_et, _num(r["nc"]),
                                           f"Proceso con más NC: {proceso_top[0]}"), 1)
         volúmenes.addWidget(_metric_block("Prendas inspeccionadas", _num(r["insp"]),
@@ -114,11 +126,9 @@ class DashboardPage(QWidget):
         calidad.vbox.addLayout(volúmenes)
 
         # 2. Cumplimiento: reúne los dos indicadores de ejecución operativa.
-        cumplimiento = Card("Cumplimiento operativo")
-        cumplimiento.vbox.setContentsMargins(16, 12, 16, 12)
-        cumplimiento.vbox.setSpacing(8)
+        cumplimiento = _dashboard_card("Cumplimiento operativo")
         metricas_cumplimiento = QHBoxLayout()
-        metricas_cumplimiento.setSpacing(22)
+        metricas_cumplimiento.setSpacing(DASHBOARD_GRID_GAP)
         chk = QVBoxLayout()
         chk.setSpacing(4)
         chk.addWidget(_metric_block("Checklists · hoy", f"{cump['pct']:.0f}%",
@@ -138,15 +148,13 @@ class DashboardPage(QWidget):
         cumplimiento.vbox.addLayout(metricas_cumplimiento)
 
         # 3. Prioridades: causa dominante, proceso más afectado y alertas activas.
-        prioridades = Card("Focos de atención")
-        prioridades.vbox.setContentsMargins(16, 12, 16, 12)
-        prioridades.vbox.setSpacing(8)
+        prioridades = _dashboard_card("Focos de atención")
         prioridades.vbox.addWidget(
             _metric_block("Causa principal de NC",
                           f"{causa_top[2]:.1f}%", causa_top[0])
         )
         fila_prioridades = QHBoxLayout()
-        fila_prioridades.setSpacing(16)
+        fila_prioridades.setSpacing(DASHBOARD_GRID_GAP)
         fila_prioridades.addWidget(
             _metric_block("Proceso con más NC", proceso_top[0],
                           f"{_num(proceso_top[1])} NC del mes"), 1
@@ -158,15 +166,13 @@ class DashboardPage(QWidget):
         prioridades.vbox.addLayout(fila_prioridades)
 
         grid_resumen = ResponsiveGrid(
-            min_item_width=340, max_columns=3, spacing=14
+            min_item_width=340, max_columns=3, spacing=DASHBOARD_GRID_GAP
         )
         grid_resumen.set_items([calidad, cumplimiento, prioridades])
         self.layout_principal.addWidget(grid_resumen)
 
         # ---------------- gráficos adaptables
-        c1 = Card("Pareto de causas de no conformidad")
-        c1.vbox.setContentsMargins(14, 10, 14, 10)
-        c1.vbox.setSpacing(7)
+        c1 = _dashboard_card("Pareto de causas de no conformidad")
         pareto = ParetoWidget(min_height=200)
         pareto.set_datos(queries.pareto(self.conn))
         h = QLabel("Barras: % de prendas defectuosas por causa · Línea: % acumulado · Punteada ámbar: corte 80/20.")
@@ -175,9 +181,7 @@ class DashboardPage(QWidget):
         c1.vbox.addWidget(pareto)
         c1.vbox.addWidget(h)
 
-        c2 = Card("Tasa de NC — As-Is → Piloto → To-Be")
-        c2.vbox.setContentsMargins(14, 10, 14, 10)
-        c2.vbox.setSpacing(7)
+        c2 = _dashboard_card("Tasa de NC — As-Is → Piloto → To-Be")
         tendencia = TendenciaWidget(min_height=200)
         tendencia.set_datos(queries.tasa_mensual(self.conn), as_is, to_be)
         h2 = QLabel("Gris: línea base 2024 · Teal: piloto 2026 · Punteada verde: meta To-Be del sector exportador.")
@@ -187,16 +191,14 @@ class DashboardPage(QWidget):
         c2.vbox.addWidget(h2)
 
         grid_graficos = ResponsiveGrid(
-            min_item_width=460, max_columns=2, spacing=14
+            min_item_width=460, max_columns=2, spacing=DASHBOARD_GRID_GAP
         )
         grid_graficos.set_items([c1, c2])
         self.layout_principal.addWidget(grid_graficos)
 
         # ---------------- rankings adaptables
 
-        c3 = Card("Operarios con más NC · Corte")
-        c3.vbox.setContentsMargins(14, 10, 14, 10)
-        c3.vbox.setSpacing(7)
+        c3 = _dashboard_card("Operarios con más NC · Corte")
         filas_ops = []
         for i, (nombre, n) in enumerate(queries.ranking_operarios(self.conn), 1):
             causa_dom = self.conn.execute(
@@ -215,9 +217,7 @@ class DashboardPage(QWidget):
         c3.vbox.addWidget(tabla_ops)
 
 
-        c4 = Card("Máquinas con más NC asociadas")
-        c4.vbox.setContentsMargins(14, 10, 14, 10)
-        c4.vbox.setSpacing(7)
+        c4 = _dashboard_card("Máquinas con más NC asociadas")
         critic = {row["codigo"]: row["criticidad"]
                   for row in self.conn.execute("SELECT codigo, criticidad FROM maquinas")}
         filas_maqs = [[(mid, None, True), critic.get(mid, "—"), (_num(n), DER)]
