@@ -50,7 +50,8 @@ CREATE TABLE IF NOT EXISTS produccion (
     proceso        TEXT NOT NULL,
     turno          TEXT NOT NULL,
     inspeccionadas INTEGER NOT NULL,
-    nc_detectadas  INTEGER NOT NULL,
+    nc_detectadas  INTEGER NOT NULL CHECK (nc_detectadas >= 0 AND nc_detectadas <= inspeccionadas),
+    origen_dato    TEXT NOT NULL DEFAULT 'manual',
     UNIQUE (fecha, proceso, turno)
 );
 
@@ -65,7 +66,8 @@ CREATE TABLE IF NOT EXISTS no_conformidades (
     maquina    TEXT DEFAULT '—',
     cantidad   INTEGER NOT NULL DEFAULT 1,
     observacion TEXT DEFAULT '',
-    creado_en  TEXT DEFAULT (datetime('now', 'localtime'))
+    creado_en  TEXT DEFAULT (datetime('now', 'localtime')),
+    origen_dato TEXT NOT NULL DEFAULT 'manual'
 );
 CREATE INDEX IF NOT EXISTS idx_nc_fecha   ON no_conformidades (fecha);
 CREATE INDEX IF NOT EXISTS idx_nc_proceso ON no_conformidades (proceso);
@@ -199,6 +201,9 @@ def ruta_data() -> Path:
 
 
 def ruta_db() -> Path:
+    """Permite seleccionar una ruta concreta para despliegues y pruebas."""
+    if archivo := os.environ.get("SICAM_DB"):
+        return Path(archivo)
     return ruta_data() / "sicam.db"
 
 
@@ -211,6 +216,14 @@ def conectar(ruta: Path | str | None = None) -> sqlite3.Connection:
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA foreign_keys=ON")
     conn.executescript(ESQUEMA)
+    # Migración retrocompatible para bases creadas antes de registrar procedencia.
+    for tabla in ("produccion", "no_conformidades"):
+        columnas = {fila["name"] for fila in conn.execute(f"PRAGMA table_info({tabla})")}
+        if "origen_dato" not in columnas:
+            conn.execute(
+                f"ALTER TABLE {tabla} ADD COLUMN origen_dato TEXT NOT NULL DEFAULT 'manual'"
+            )
+    conn.commit()
     return conn
 
 
@@ -226,6 +239,11 @@ def vaciar(conn: sqlite3.Connection) -> None:
     with conn:
         for t in tablas:
             conn.execute(f"DELETE FROM {t}")
+        # Reiniciar identificadores tras una restauración completa.
+        try:
+            conn.execute("DELETE FROM sqlite_sequence")
+        except sqlite3.OperationalError:
+            pass
 
 
 def contar(conn: sqlite3.Connection) -> dict[str, int]:

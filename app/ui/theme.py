@@ -97,9 +97,24 @@ QPushButton#nav_btn[collapsed="true"] {{
 
 /* ---------- topbar ---------- */
 QLabel#page_title {{ font-size: 19px; font-weight: 800; }}
-QLabel#pill {{
-    background: {COLORS['teal_soft']}; color: {COLORS['teal_dark']};
-    font-size: 11.5px; font-weight: 700; padding: 5px 12px; border-radius: 11px;
+QComboBox#month_selector {{
+    background: {COLORS['teal_soft']};
+    color: {COLORS['teal_dark']};
+    border: 1px solid {COLORS['teal_border']};
+    border-radius: 10px;
+    padding: 7px 26px 7px 11px;
+    min-height: 19px;
+    font-size: 11.5px;
+    font-weight: 750;
+}}
+QComboBox#month_selector:hover {{ background: {COLORS['surface_alt']}; }}
+QComboBox#month_selector QAbstractItemView {{
+    background: {COLORS['surface']};
+    color: {COLORS['ink']};
+    border: 1px solid {COLORS['line']};
+    selection-background-color: {COLORS['teal_soft']};
+    selection-color: {COLORS['teal_dark']};
+    padding: 4px;
 }}
 QPushButton#bell, QPushButton#theme_toggle {{
     border: 1px solid {COLORS['line']}; border-radius: 9px;

@@ -185,8 +185,11 @@ def validar(datos: dict[str, list[dict]], conn: sqlite3.Connection) -> Resultado
         turno = _texto(f.get("turno"))
         if turno not in db.TURNOS:
             e.append(f"turno '{turno}' no está en el catálogo {db.TURNOS}")
-        _entero(f.get("prendas_inspeccionadas"), e, 1, "prendas_inspeccionadas")
-        _entero(f.get("nc_detectadas"), e, 0, "nc_detectadas")
+        inspeccionadas = _entero(f.get("prendas_inspeccionadas"), e, 1, "prendas_inspeccionadas")
+        nc_detectadas = _entero(f.get("nc_detectadas"), e, 0, "nc_detectadas")
+        if (inspeccionadas is not None and nc_detectadas is not None
+                and nc_detectadas > inspeccionadas):
+            e.append("nc_detectadas no puede superar prendas_inspeccionadas")
         clave = (fecha, proceso, turno)
         if clave in vistas_prod:
             e.append(f"fila duplicada en el archivo para {fecha} {proceso} {turno}")
@@ -284,9 +287,12 @@ def importar(conn: sqlite3.Connection, datos: dict[str, list[dict]]) -> Resultad
             res.resumen["operarios"] = upsert("operarios", sql, filas, lambda f: f[0])
 
         if "produccion" in datos:
-            sql = ("INSERT INTO produccion (fecha, proceso, turno, inspeccionadas, nc_detectadas) "
-                   "VALUES (?,?,?,?,?) ON CONFLICT (fecha, proceso, turno) DO UPDATE SET "
-                   "inspeccionadas=excluded.inspeccionadas, nc_detectadas=excluded.nc_detectadas")
+            sql = ("INSERT INTO produccion "
+                   "(fecha, proceso, turno, inspeccionadas, nc_detectadas, origen_dato) "
+                   "VALUES (?,?,?,?,?,'importacion') "
+                   "ON CONFLICT (fecha, proceso, turno) DO UPDATE SET "
+                   "inspeccionadas=excluded.inspeccionadas, nc_detectadas=excluded.nc_detectadas, "
+                   "origen_dato='importacion'")
             filas = [(_fecha_iso(f["fecha"]), _t(f["proceso"]), _t(f["turno"]),
                       int(float(str(f["prendas_inspeccionadas"]))),
                       int(float(str(f["nc_detectadas"]))))
@@ -295,8 +301,9 @@ def importar(conn: sqlite3.Connection, datos: dict[str, list[dict]]) -> Resultad
                 "produccion", sql, filas, lambda f: "|".join(f[:3]))
 
         if "no_conformidades" in datos:
-            sql = ("INSERT INTO no_conformidades (fecha, turno, proceso, causa, defecto, "
-                   "operario, maquina, cantidad, observacion) VALUES (?,?,?,?,?,?,?,?,?)")
+            sql = ("INSERT INTO no_conformidades "
+                   "(fecha, turno, proceso, causa, defecto, operario, maquina, cantidad, "
+                   "observacion, origen_dato) VALUES (?,?,?,?,?,?,?,?,?,'importacion')")
             filas = [(_fecha_iso(f["fecha"]), _t(f["turno"]), _t(f["proceso"]), _t(f["causa"]),
                       _t(f.get("defecto")), _t(f.get("operario")) or "—",
                       _t(f.get("maquina")) or "—",

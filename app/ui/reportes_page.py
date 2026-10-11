@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (
     QFileDialog, QGridLayout, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget,
 )
 
-from ..core import plantilla, reportes
+from ..core import plantilla, queries, reportes
 from . import icons
 from .theme import COLORS
 from .widgets import Card
@@ -41,14 +41,13 @@ class ReportesPage(QWidget):
         grid.setSpacing(14)
 
         self._tarjeta_reporte(grid, 0, 0, "calendar", "Plan mensual de mantenimiento",
-                              "Cronograma S1–S4 por máquina con frecuencias de la Fig. 42, "
-                              "estados y cumplimiento del mes.", self._pdf_plan)
+                              "Cronograma S1–S4 con el periodo seleccionado en el navbar.",
+                              self._pdf_plan)
         self._tarjeta_reporte(grid, 0, 1, "chart", "Pareto de causas",
-                              "Pareto del periodo completo con % acumulado y corte 80/20, "
-                              "listo para exponer (Fig. 9).", self._pdf_pareto)
+                              "Pareto del mes activo con % acumulado y corte 80/20.", self._pdf_pareto)
         self._tarjeta_reporte(grid, 1, 0, "trend", "Resumen de indicadores",
-                              "As-Is · To-Be · actual para los indicadores de las Tablas 21 "
-                              "y 22 de la tesis.", self._pdf_indicadores)
+                              "Tasa de NC del mes activo, contrastada con As-Is y To-Be.",
+                              self._pdf_indicadores)
         self._tarjeta_reporte(grid, 1, 1, "sheet", "Registro de no conformidades",
                               "Detalle de NC en Excel con las mismas columnas de la "
                               "plantilla de carga (formato bidireccional).", self._xlsx_nc)
@@ -87,23 +86,27 @@ class ReportesPage(QWidget):
 
     def _pdf_plan(self):
         if ruta := self._guardar("PDF (*.pdf)", "plan_tpm.pdf"):
-            reportes.pdf_plan(self.conn, ruta)
-            self.shell.toast(f"Plan mensual exportado: {ruta}")
+            referencia = queries.fecha_referencia_mes(self.shell.mes_activo)
+            reportes.pdf_plan(self.conn, ruta, hoy=referencia)
+            self.shell.toast(f"Plan de {self.shell.mes_selector.currentText()} exportado: {ruta}")
 
     def _pdf_pareto(self):
         if ruta := self._guardar("PDF (*.pdf)", "pareto_causas.pdf"):
-            reportes.pdf_pareto(self.conn, ruta)
-            self.shell.toast(f"Pareto exportado: {ruta}")
+            reportes.pdf_pareto(self.conn, ruta, mes=self.shell.mes_activo)
+            self.shell.toast(f"Pareto de {self.shell.mes_selector.currentText()} exportado: {ruta}")
 
     def _pdf_indicadores(self):
         if ruta := self._guardar("PDF (*.pdf)", "indicadores.pdf"):
-            reportes.pdf_indicadores(self.conn, ruta)
-            self.shell.toast(f"Indicadores exportados: {ruta}")
+            reportes.pdf_indicadores(self.conn, ruta, mes=self.shell.mes_activo)
+            self.shell.toast(f"Indicadores de {self.shell.mes_selector.currentText()} exportados: {ruta}")
 
     def _xlsx_nc(self):
         if ruta := self._guardar("Excel (*.xlsx)", "no_conformidades.xlsx"):
-            n = plantilla.exportar_no_conformidades(self.conn, ruta)
-            self.shell.toast(f"Exportadas {n} filas a {ruta}")
+            desde, hasta = queries.limites_mes(self.shell.mes_activo)
+            n = plantilla.exportar_no_conformidades(self.conn, ruta, desde=desde, hasta=hasta)
+            self.shell.toast(
+                f"Exportadas {n} filas de {self.shell.mes_selector.currentText()}: {ruta}"
+            )
 
     def refresh(self):
         pass

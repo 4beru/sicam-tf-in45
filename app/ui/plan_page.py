@@ -11,7 +11,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout, QWidget,
 )
 
-from ..core import plan_tpm
+from ..core import plan_tpm, queries
 from . import icons
 from .theme import COLORS
 from .widgets import Card, chip_punto, tabla, vaciar_layout
@@ -25,7 +25,8 @@ PRIORIDAD = {"over": 0, "soon": 1, "sched": 2}
 
 
 class EjecucionDialog(QDialog):
-    def __init__(self, maquina: str, actividad: str, frecuencia_txt: str, parent=None):
+    def __init__(self, maquina: str, actividad: str, frecuencia_txt: str,
+                 parent=None, fecha_default: date | None = None):
         super().__init__(parent)
         self.maquina, self.actividad = maquina, actividad
         self.setWindowTitle(f"Registrar ejecución — {maquina}")
@@ -35,7 +36,7 @@ class EjecucionDialog(QDialog):
         info = QLabel(f"<b>{actividad}</b> · frecuencia {frecuencia_txt}")
         info.setTextFormat(Qt.TextFormat.RichText)
         form.addRow(info)
-        self.fecha = QDateEdit(date.today())
+        self.fecha = QDateEdit(fecha_default or date.today())
         self.fecha.setDisplayFormat("dd/MM/yyyy")
         self.fecha.setCalendarPopup(True)
         self.fecha.setProperty("cal", True)
@@ -83,8 +84,9 @@ class PlanPage(QWidget):
 
     # ------------------------------------------------ refresco
     def refresh(self):
-        r = plan_tpm.resumen(self.conn)
-        self._tareas = plan_tpm.tareas_del_mes(self.conn)
+        referencia = queries.fecha_referencia_mes(self.shell.mes_activo)
+        r = plan_tpm.resumen(self.conn, referencia)
+        self._tareas = plan_tpm.tareas_del_mes(self.conn, referencia)
 
         # ---- cabecera: chips + cumplimiento + exportar
         vaciar_layout(self.cabecera.vbox)
@@ -132,7 +134,7 @@ class PlanPage(QWidget):
         vaciar_layout(self.card_grid.vbox)
 
         frecs = self.conn.execute("SELECT * FROM frecuencias ORDER BY maquina").fetchall()
-        ejecutadas = plan_tpm.ejecuciones_del_mes(self.conn)
+        ejecutadas = plan_tpm.ejecuciones_del_mes(self.conn, referencia)
         grid = QTableWidget(len(frecs), 8)
         grid.setHorizontalHeaderLabels(
             ["Máquina", "Actividad", "Frecuencia", "Sem 1", "Sem 2", "Sem 3", "Sem 4", "Responsable"])
@@ -175,7 +177,11 @@ class PlanPage(QWidget):
                     b.setProperty("cls", cls)
                     b.setCursor(Qt.CursorShape.PointingHandCursor)
                     maq, act, ft = f["maquina"], f["actividad"], peor["frecuencia_txt"]
-                    b.clicked.connect(lambda _=False, m=maq, a=act, t=ft: self._registrar(m, a, t))
+                    fecha_tarea = peor["fecha"]
+                    b.clicked.connect(
+                        lambda _=False, m=maq, a=act, t=ft, fd=fecha_tarea:
+                        self._registrar(m, a, t, fd)
+                    )
                     cv.addWidget(b)
                 else:
                     lbl = QLabel("—")
@@ -207,7 +213,7 @@ class PlanPage(QWidget):
 
         # ---- ejecuciones recientes
         self.card_grid.vbox.addSpacing(4)
-        ejec = plan_tpm.ejecuciones_del_mes(self.conn)[:10]
+        ejec = plan_tpm.ejecuciones_del_mes(self.conn, referencia)[:10]
         if ejec:
             titulo2 = QLabel("<b>Ejecuciones recientes</b>")
             titulo2.setTextFormat(Qt.TextFormat.RichText)
@@ -217,8 +223,12 @@ class PlanPage(QWidget):
                 [[e["fecha"], e["maquina"], e["actividad"], e["responsable"],
                   e["observacion"]] for e in ejec]))
 
-    def _registrar(self, maquina: str, actividad: str, frecuencia_txt: str):
-        if EjecucionDialog(maquina, actividad, frecuencia_txt, self).exec():
+    def _registrar(self, maquina: str, actividad: str, frecuencia_txt: str,
+                   fecha_default: str | None = None):
+        fecha = date.fromisoformat(fecha_default) if fecha_default else None
+        if EjecucionDialog(
+                maquina, actividad, frecuencia_txt, self, fecha_default=fecha
+        ).exec():
             self.shell.toast(f"Ejecución registrada — próxima de {maquina} recalculada")
             self.shell.refresh_all(excepto="plan")
 
@@ -229,5 +239,6 @@ class PlanPage(QWidget):
             self, "Exportar plan mensual", "plan_tpm.pdf", "PDF (*.pdf)")
         if not ruta:
             return
-        reportes.pdf_plan(self.conn, ruta)
-        self.shell.toast(f"Plan exportado: {ruta}")
+        referencia = queries.fecha_referencia_mes(self.shell.mes_activo)
+        reportes.pdf_plan(self.conn, ruta, hoy=referencia)
+        self.shell.toast(f"Plan de {self.shell.mes_selector.currentText()} exportado: {ruta}")

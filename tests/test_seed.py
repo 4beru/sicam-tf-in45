@@ -1,4 +1,4 @@
-"""Tests de la semilla sintética: coherencia con las Tablas 6/7/21/22 de la tesis."""
+"""Tests de la semilla sintética: cobertura, coherencia e idempotencia."""
 from __future__ import annotations
 
 import pytest
@@ -28,8 +28,32 @@ def test_tasa_2024_cerca_del_as_is(conn):
 
 def test_piloto_desciende_hacia_la_meta(conn):
     tasa = {m["mes"]: m["tasa"] for m in queries.tasa_mensual(conn) if m["piloto"]}
-    assert tasa["2026-07"] > tasa["2026-08"] > tasa["2026-09"]
+    meses = [f"2026-{mes:02d}" for mes in range(7, 12)]
+    assert all(mes in tasa for mes in meses)
+    assert all(tasa[a] > tasa[b] for a, b in zip(meses, meses[1:]))
     assert tasa["2026-09"] < tasa["2026-07"]
+
+
+def test_semilla_no_duplica_datos_si_se_ejecuta_otra_vez(conn):
+    tablas = (
+        "produccion", "no_conformidades", "checklists", "tarjetas_tpm",
+        "plan_ejecuciones", "iot_lecturas", "iot_alertas",
+    )
+    antes = {t: conn.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] for t in tablas}
+    seed.siembra(conn)
+    despues = {t: conn.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0] for t in tablas}
+    assert despues == antes
+
+
+def test_piloto_completo_y_cantidades_validas(conn):
+    assert conn.execute(
+        "SELECT COUNT(*) FROM produccion WHERE fecha BETWEEN '2026-08-01' AND '2026-11-30'"
+    ).fetchone()[0] > 0
+    invalidas = conn.execute(
+        "SELECT COUNT(*) FROM produccion "
+        "WHERE inspeccionadas <= 0 OR nc_detectadas < 0 OR nc_detectadas > inspeccionadas"
+    ).fetchone()[0]
+    assert invalidas == 0
 
 
 def test_pareto_respeta_el_orden_de_la_tabla_7(conn):
@@ -50,4 +74,5 @@ def test_metas_y_frecuencias_presentes(conn):
     m = queries.metas(conn)
     assert m["Tasa de prendas no conformes"] == (10.68, 4.95)
     n = conn.execute("SELECT COUNT(*) FROM frecuencias").fetchone()[0]
-    assert n == 7  # una actividad por máquina (Fig. 42)
+    maquinas = conn.execute("SELECT COUNT(*) FROM maquinas").fetchone()[0]
+    assert n == maquinas == 30

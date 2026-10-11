@@ -125,10 +125,11 @@ def pdf_plan(conn: sqlite3.Connection, ruta: Path | str, hoy: date | None = None
     return Path(ruta)
 
 
-def pdf_indicadores(conn: sqlite3.Connection, ruta: Path | str) -> Path:
-    """Comparativa de valores iniciales, objetivos y resultados actuales de los indicadores."""
+def pdf_indicadores(conn: sqlite3.Connection, ruta: Path | str,
+                    mes: str | None = None) -> Path:
+    """Comparativa As-Is/To-Be con tasa de NC del mes seleccionado."""
     metas = queries.metas(conn)
-    r = queries.resumen_mes(conn)
+    r = queries.resumen_mes(conn, mes)
     from . import checklists
     cump_chk = checklists.cumplimiento_hoy(conn)["pct"]
     cump_plan = plan_tpm.resumen(conn)["cumplimiento"]
@@ -154,21 +155,33 @@ def pdf_indicadores(conn: sqlite3.Connection, ruta: Path | str) -> Path:
         ("TOPPADDING", (0, 0), (-1, -1), 5), ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
     ]))
 
-    doc = _doc(ruta, "Resumen de indicadores")
-    doc.build(_cabecera("Resumen de indicadores — As-Is · To-Be · Piloto",
-                        "Valores iniciales y objetivos configurados; "
-                        "los valores actuales se calculan desde la base del sistema.")
+    etiqueta = queries.etiqueta_mes(mes) if mes else "periodo disponible"
+    doc = _doc(ruta, f"Resumen de indicadores · {etiqueta}")
+    doc.build(_cabecera(f"Resumen de indicadores — {etiqueta}",
+                        "Tasa de NC: mes seleccionado. Checklists y TPM: estado operativo.")
               + [t])
     return Path(ruta)
 
 
-def pdf_pareto(conn: sqlite3.Connection, ruta: Path | str) -> Path:
-    """Pareto de causas con % acumulado (barras teal + línea a mano)."""
+def pdf_pareto(conn: sqlite3.Connection, ruta: Path | str,
+               mes: str | None = None) -> Path:
+    """Pareto de causas del mes seleccionado, con % acumulado.""""
     from reportlab.graphics.charts.barcharts import VerticalBarChart
     from reportlab.graphics.shapes import Drawing as RLDrawing
     from reportlab.graphics.shapes import Line, String
 
-    par = queries.pareto(conn)
+    if mes:
+        desde, hasta = queries.limites_mes(mes)
+        par = queries.pareto(conn, desde=desde, hasta=hasta)
+    else:
+        par = queries.pareto(conn)
+    etiqueta = queries.etiqueta_mes(mes) if mes else "periodo completo"
+    if not par:
+        doc = _doc(ruta, f"Pareto de causas · {etiqueta}")
+        doc.build(_cabecera(f"Pareto de causas · {etiqueta}",
+                            "No hay no conformidades registradas en este periodo.")
+                  + [Paragraph("Sin datos para generar el gráfico.", _normal)])
+        return Path(ruta)
     total_pct = sum(p for _, _, p in par) or 1.0
     acum, puntos = 0.0, []
     for _, _, p in par:
@@ -207,8 +220,8 @@ def pdf_pareto(conn: sqlite3.Connection, ruta: Path | str) -> Path:
                strokeColor=colors.HexColor("#F59E0B"), strokeWidth=1.2,
                strokeDashArray=[4, 3]))
 
-    doc = _doc(ruta, "Pareto de causas")
-    doc.build(_cabecera("Pareto de causas de no conformidad",
+    doc = _doc(ruta, f"Pareto de causas · {etiqueta}")
+    doc.build(_cabecera(f"Pareto de causas de no conformidad · {etiqueta}",
                         "Barras: % por causa · Línea: % acumulado · "
                         "Punteada: corte 80/20.")
               + [d])

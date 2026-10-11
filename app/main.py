@@ -24,14 +24,15 @@ def main() -> int:
     actualizar_colores_tema()
 
     conn = db.conectar()
-    # Mantener disponibles las 30 estaciones de costura para los QR del checklist.
-    seed.asegurar_maquinas_costura(conn)
-
     primera_vez = False
-    if conn.execute("SELECT COUNT(*) FROM no_conformidades").fetchone()[0] == 0:
+    nc_existentes = conn.execute("SELECT COUNT(*) FROM no_conformidades").fetchone()[0]
+    prod_existente = conn.execute("SELECT COUNT(*) FROM produccion").fetchone()[0]
+    if nc_existentes == 0 and prod_existente == 0:
+        # Carga primero el catálogo canónico en una base nueva.
         seed.siembra(conn)
         primera_vez = True
     else:
+        seed.asegurar_maquinas_costura(conn)
         # migraciones ligeras para BDs creadas en fases anteriores
         if conn.execute("SELECT COUNT(*) FROM checklists").fetchone()[0] == 0:
             seed.sembrar_fase2(conn)

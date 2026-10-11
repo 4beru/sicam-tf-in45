@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (
     QPushButton, QVBoxLayout, QWidget,
 )
 
-from ..core import db, importador, plantilla, seed
+from ..core import db, importador, integridad, plantilla, queries, seed
 from . import icons
 from .theme import COLORS
 from .widgets import Card, tabla, vaciar_layout
@@ -69,15 +69,28 @@ class DatosPage(QWidget):
         c_export.vbox.addWidget(h2)
         col1.addWidget(c_export)
 
-        c_semilla = Card("Datos sintéticos")
+        c_semilla = Card("Datos piloto e integridad")
         self.lbl_semilla = QLabel()
-        self.lbl_semilla.setProperty("cls", "muted"); self.lbl_semilla.setWordWrap(True)
+        self.lbl_semilla.setProperty("cls", "muted")
+        self.lbl_semilla.setWordWrap(True)
         c_semilla.vbox.addWidget(self.lbl_semilla)
-        b3 = QPushButton("  Restablecer semilla 2024 + piloto")
+        ayuda_reset = QLabel(
+            "La auditoría elimina referencias huérfanas inequívocas e informa datos dudosos. "
+            "El restablecimiento vuelve al conjunto de demostración."
+        )
+        ayuda_reset.setProperty("cls", "hint")
+        ayuda_reset.setWordWrap(True)
+        c_semilla.vbox.addWidget(ayuda_reset)
+        b3 = QPushButton("  Restablecer datos piloto")
         b3.setProperty("cls", "ghost")
         b3.setIcon(icons.icono("refresh", COLORS["teal"], 15))
         b3.clicked.connect(self._resembrar)
         c_semilla.vbox.addWidget(b3)
+        b_auditar = QPushButton("  Auditar y sanear datos")
+        b_auditar.setProperty("cls", "ghost")
+        b_auditar.setIcon(icons.icono("check", COLORS["teal"], 15))
+        b_auditar.clicked.connect(self._auditar_integridad)
+        c_semilla.vbox.addWidget(b_auditar)
         col1.addWidget(c_semilla)
         col1.addStretch(1)
         fila.addLayout(col1, 1)
@@ -195,16 +208,45 @@ class DatosPage(QWidget):
         v.addWidget(bb)
         return dlg.exec() == QDialog.DialogCode.Accepted
 
+    def _auditar_integridad(self):
+        resultado = integridad.auditar_y_reparar(self.conn)
+        lineas = [
+            f"Integridad SQLite: {resultado['integridad_sqlite']}",
+            "",
+            f"Reparaciones seguras: {len(resultado['reparaciones'])}",
+        ]
+        lineas.extend(f"• {item}" for item in resultado["reparaciones"])
+        lineas.extend(["", f"Inconsistencias pendientes: {len(resultado['problemas'])}"])
+        lineas.extend(f"• {item}" for item in resultado["problemas"])
+        texto = "\n".join(lineas)
+        if resultado["problemas"]:
+            QMessageBox.warning(self, "Auditoría de datos", texto)
+        else:
+            QMessageBox.information(self, "Auditoría de datos", texto)
+        self.shell.refresh_all(excepto="datos")
+        self.refresh()
+
     def _resembrar(self):
-        if QMessageBox.question(
-                self, "Restablecer datos sintéticos",
-                "Esto BORRA todos los datos actuales y vuelve a generar la línea base 2024 "
-                "+ piloto sintético. ¿Continuar?",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                QMessageBox.StandardButton.No) != QMessageBox.StandardButton.Yes:
+        confirmacion = QMessageBox.question(
+            self, "Restablecer datos piloto",
+            "Este proceso sustituirá los registros manuales/importados y los datos de operación "
+            "(checklists, TPM, IoT e historial de importaciones) por la semilla de demostración. "
+            "Se conservará únicamente la base sintética definida por SICAM: histórico 2024 y "
+            "piloto julio-noviembre de 2026. No se puede deshacer.\n\n¿Continuar?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if confirmacion != QMessageBox.StandardButton.Yes:
             return
         seed.siembra(self.conn, reset=True)
-        self.shell.toast("Semilla restablecida: 2024 + piloto regenerados")
+        resultado = integridad.auditar_y_reparar(self.conn)
+        self.shell._firma = queries.firma_datos(self.conn)
+        self.shell.toast("Datos piloto restaurados y auditados")
+        if resultado["problemas"]:
+            QMessageBox.warning(
+                self, "Restauración completada con advertencias",
+                "\n".join(resultado["problemas"]),
+            )
         self.shell.refresh_all(excepto="datos")
         self.refresh()
 
@@ -213,8 +255,9 @@ class DatosPage(QWidget):
         c = db.contar(self.conn)
         self.lbl_semilla.setText(
             f"Contenido actual: {c['no_conformidades']:,} registros NC · "
-            f"{c['produccion']:,} de producción · {c['maquinas']} máquinas · "
-            f"{c['operarios']} operarios".replace(",", " "))
+            f"{c['produccion']:,} filas de producción · {c['maquinas']} máquinas · "
+            f"{c['operarios']} operarios · {c['checklists']} checklists · "
+            f"{c['tarjetas_tpm']} tarjetas TPM".replace(",", " "))
 
         filas = self.conn.execute(
             "SELECT fecha, archivo, filas_ok, filas_error, estado FROM importaciones "
