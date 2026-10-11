@@ -64,7 +64,7 @@ class Shell(QMainWindow):
         self.conn = conn
         self.setWindowTitle("SICAM · Createl Trading S.A.C.")
         self.resize(1440, 920)
-        self.setMinimumSize(960, 640)
+        self.setMinimumSize(720, 640)
 
         central = QWidget()
         central.setProperty("cls", "app_root")
@@ -324,6 +324,6 @@ class Shell(QMainWindow):
         if hasattr(self, "pill"):
             self.pill.setVisible(self.width() >= 1120)
         if hasattr(self, "usuario"):
-            self.usuario.setMaximumWidth(300 if self.width() >= 1120 else 220)
+            self.usuario.setMaximumWidth(300 if self.width() >= 1120 else 220 if self.width() >= 820 else 175)
         if hasattr(self, "toast_host") and self.toast_host.isVisible():
             self._posicionar_toast()
