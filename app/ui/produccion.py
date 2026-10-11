@@ -30,7 +30,7 @@ class ProduccionPage(QWidget):
         v.setSpacing(14)
 
         # ---------------- formulario
-        card_form = Card("Registrar producción del día", "“registro de prendas por día”")
+        card_form = Card("Registrar producción del día")
         fila = QHBoxLayout()
         fila.setSpacing(9)
         self.f_fecha = QDateEdit(date.today())
