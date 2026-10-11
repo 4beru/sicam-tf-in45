@@ -69,9 +69,11 @@ class DashboardPage(QWidget):
 
     def refresh(self):
         vaciar_layout(self.layout_principal)
+        mes = self.shell.mes_activo
+        desde, hasta = queries.limites_mes(mes)
         m = queries.metas(self.conn)
         as_is, to_be = m.get("Tasa de prendas no conformes", (10.68, 4.95))
-        r = queries.resumen_mes(self.conn)
+        r = queries.resumen_mes(self.conn, mes)
         mes_et = queries.etiqueta_mes(r["mes"]) if r["mes"] else "—"
 
         # ---------------- resumen principal
@@ -177,7 +179,7 @@ class DashboardPage(QWidget):
         # ---------------- gráficos adaptables
         c1 = _dashboard_card("Pareto de causas de no conformidad")
         pareto = ParetoWidget(min_height=200)
-        pareto.set_datos(queries.pareto(self.conn))
+        pareto.set_datos(queries.pareto(self.conn, desde=desde, hasta=hasta))
         h = QLabel("Barras: % de prendas defectuosas por causa · Línea: % acumulado · Punteada ámbar: corte 80/20.")
         h.setProperty("cls", "hint")
         h.setWordWrap(True)
@@ -203,12 +205,13 @@ class DashboardPage(QWidget):
 
         c3 = _dashboard_card("Operarios con más NC · Corte")
         filas_ops = []
-        for i, (nombre, n) in enumerate(queries.ranking_operarios(self.conn), 1):
+        for i, (nombre, n) in enumerate(
+                queries.ranking_operarios(self.conn, desde=desde, hasta=hasta), 1):
             causa_dom = self.conn.execute(
                 "SELECT causa, SUM(cantidad) n FROM no_conformidades "
-                "WHERE operario = ? AND proceso = 'Corte' AND fecha >= ? "
+                "WHERE operario = ? AND proceso = 'Corte' AND fecha BETWEEN ? AND ? "
                 "GROUP BY causa ORDER BY n DESC LIMIT 1",
-                (nombre, queries.INICIO_PILOTO)).fetchone()
+                (nombre, desde, hasta)).fetchone()
             filas_ops.append([
                 (str(i), COLORS["muted"]), (nombre, None, True),
                 (_num(n), DER),
@@ -224,7 +227,7 @@ class DashboardPage(QWidget):
         critic = {row["codigo"]: row["criticidad"]
                   for row in self.conn.execute("SELECT codigo, criticidad FROM maquinas")}
         filas_maqs = [[(mid, None, True), critic.get(mid, "—"), (_num(n), DER)]
-                      for mid, n in queries.ranking_maquinas(self.conn)]
+                      for mid, n in queries.ranking_maquinas(self.conn, desde=desde, hasta=hasta)]
         tabla_maqs = tabla(["Máquina", "Criticidad", "NC (piloto)"],
                            filas_maqs or [["—", "—", "—"]])
         tabla_maqs.verticalHeader().setDefaultSectionSize(29)
