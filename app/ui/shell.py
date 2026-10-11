@@ -56,7 +56,9 @@ class ActivePageStack(QStackedWidget):
         if page is None:
             return QSize(0, 0)
         hint = page.minimumSizeHint()
-        return QSize(max(0, hint.width()), max(0, hint.height()))
+        # El ancho mínimo no debe imponer la cuadrícula de escritorio (4 cols)
+        # antes de que el viewport pueda informar su anchura real al contenido.
+        return QSize(0, max(0, hint.height()))
 
 
 class Shell(QMainWindow):
