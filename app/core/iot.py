@@ -1,4 +1,4 @@
-"""Módulo CORE del monitor IoT (Figura 47 de la tesis).
+"""Módulo CORE del monitor IoT.
 
 Núcleo de datos del monitor de máquinas textiles: umbrales por variable,
 clasificación de lecturas (ok / A / C / D), registro de lecturas con
