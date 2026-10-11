@@ -12,7 +12,8 @@ import sqlite3
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (
     QApplication, QComboBox, QDoubleSpinBox, QHBoxLayout, QHeaderView,
-    QLabel, QPushButton, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget,
+    QLabel, QPushButton, QSizePolicy, QTableWidget, QTableWidgetItem,
+    QVBoxLayout, QWidget,
 )
 
 from ..core import iot
@@ -70,20 +71,25 @@ class IotPage(QWidget):
         self._gauges: dict[str, dict] = {}
         self._construir_gauges()
 
-        # ---------------- gráfico en vivo + registro de alertas
-        fila = QHBoxLayout()
-        fila.setSpacing(14)
+        # ---------------- gráfico en vivo y alertas, apilados
+        columna_paneles = QVBoxLayout()
+        columna_paneles.setSpacing(14)
+
         self.card_chart = Card("Última hora · en vivo")
+        # Mantiene una altura acorde al gráfico; la lista de alertas no lo estira.
+        self.card_chart.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Maximum
+        )
         self._construir_chart()
-        fila.addWidget(self.card_chart, 1)
+        columna_paneles.addWidget(self.card_chart)
 
         self.card_alertas = Card("Registro de alertas")
         self.alert_cuerpo = QVBoxLayout()
         self.alert_cuerpo.setSpacing(8)
         self.card_alertas.vbox.addLayout(self.alert_cuerpo)
         self.card_alertas.vbox.addStretch(1)
-        fila.addWidget(self.card_alertas, 1)
-        v.addLayout(fila, 1)
+        columna_paneles.addWidget(self.card_alertas)
+        v.addLayout(columna_paneles, 1)
 
         # ---------------- umbrales configurables
         self.card_umbrales = Card("Umbrales IoT")
@@ -144,6 +150,8 @@ class IotPage(QWidget):
         for var in iot.VARIABLES:
             card = Card(ETIQUETAS[var])
             gauge = GaugeWidget()
+            # Da margen suficiente para que el arco circular no quede apretado.
+            gauge.setMinimumHeight(185)
             card.vbox.addWidget(gauge)
 
             valor = QLabel("—")
