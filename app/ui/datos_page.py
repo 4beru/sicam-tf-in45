@@ -69,7 +69,7 @@ class DatosPage(QWidget):
         c_export.vbox.addWidget(h2)
         col1.addWidget(c_export)
 
-        c_semilla = Card("Datos sintéticos", "línea base de la tesis")
+        c_semilla = Card("Datos sintéticos")
         self.lbl_semilla = QLabel()
         self.lbl_semilla.setProperty("cls", "muted"); self.lbl_semilla.setWordWrap(True)
         c_semilla.vbox.addWidget(self.lbl_semilla)
