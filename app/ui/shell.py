@@ -305,18 +305,33 @@ class Shell(QMainWindow):
         self._actualizar_geometria_pagina()
 
     def _actualizar_geometria_pagina(self):
-        """Recalcula el tamaño de la página activa y actualiza el rango del scroll."""
+        """Recalcula altura intrínseca y rango de scroll de la página visible."""
         actual = self.stack.currentWidget()
         if actual is not None and actual.layout() is not None:
             actual.layout().activate()
         self.stack.updateGeometry()
-        self.page_content.updateGeometry()
         if self.page_content.layout() is not None:
             self.page_content.layout().activate()
+        self.page_content.updateGeometry()
         self.page_scroll.updateGeometry()
-        # QScrollArea actualiza sus rangos al procesar los cambios de geometría.
-        # Diferir una vuelta evita conservar el rango de la sección anterior.
-        QTimer.singleShot(0, self.page_scroll.updateGeometry)
+        # Primero dejamos que Qt aplique el nuevo ancho y las columnas
+        # responsive; después fijamos la altura a la necesidad real del contenido.
+        QTimer.singleShot(0, self._sincronizar_altura_pagina)
+
+    def _sincronizar_altura_pagina(self):
+        actual = self.stack.currentWidget()
+        if actual is None:
+            return
+        if actual.layout() is not None:
+            actual.layout().activate()
+        size_hint = actual.sizeHint().height()
+        min_hint = actual.minimumSizeHint().height()
+        altura = max(0, size_hint, min_hint)
+        if altura and self.stack.height() != altura:
+            self.stack.setFixedHeight(altura)
+        self.stack.updateGeometry()
+        self.page_content.updateGeometry()
+        self.page_scroll.updateGeometry()
 
     # ------------------------------------------------ toast
     def toast(self, mensaje: str, tipo: str = "ok"):
