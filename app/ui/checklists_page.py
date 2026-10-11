@@ -272,11 +272,13 @@ class ChecklistsPage(QWidget):
         recientes = checklists.checklists_recientes(self.conn, 15)
         filas = []
         for r in recientes:
-            resultado = ("<span style='color:#15803D;font-weight:700'>Sin fallas</span>"
-                         if not r["fallas"] else
-                         f"<span style='color:#B91C1C;font-weight:700'>{r['fallas']} falla(s) → {r['tarjeta']}</span>")
+            resultado = (
+                ("Sin fallas", "#15803D", True)
+                if not r["fallas"] else
+                (f"{r['fallas']} falla(s) → {r['tarjeta']}", "#B91C1C", True)
+            )
             filas.append([
-                f"<b>#{r['id']:04d}</b>", r["maquina"], r["operario"], r["turno"],
+                (f"#{r['id']:04d}", None, True), r["maquina"], r["operario"], r["turno"],
                 r["creada_en"][11:16] if r["creada_en"] else "", f"{r['items'] - r['fallas']}/{r['items']}",
                 resultado,
             ])
