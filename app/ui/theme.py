@@ -95,6 +95,10 @@ QFrame[cls="card"] {{
     background: {COLORS['surface']}; border: 1px solid {COLORS['line']};
     border-radius: 13px;
 }}
+QFrame[cls="topbar"] {{
+    background: {COLORS['surface']}; border: none;
+    border-bottom: 1px solid {COLORS['line']};
+}}
 QFrame[cls="topbar"] {{ background: {COLORS['surface']}; border: none; border-bottom: 1px solid {COLORS['line']}; }}
 QLabel[cls="card_title"] {{ font-size: 14px; font-weight: 800; }}
 QLabel[cls="ref"] {{
@@ -184,11 +188,11 @@ QLabel[cls="banner_txt"] {{ color: {COLORS['teal_text']}; font-size: 12.5px; }}
 /* ---------- plan TPM: celdas de semana ---------- */
 QPushButton[cls="st_done"]  {{ background: {COLORS['green_soft']}; color: {COLORS['good_text']}; font-size: 10.5px; font-weight: 800; border: none; border-radius: 8px; padding: 5px 10px; }}
 QPushButton[cls="st_over"]  {{ background: {COLORS['red_soft']}; color: {COLORS['bad_text']}; font-size: 10.5px; font-weight: 800; border: 1px solid {COLORS['bad_text']}; border-radius: 8px; padding: 5px 10px; }}
-QPushButton[cls="st_over"]:hover  {{ background: #FECACA; }}
+QPushButton[cls="st_over"]:hover  {{ background: {COLORS['red_soft']}; }}
 QPushButton[cls="st_soon"]  {{ background: {COLORS['amber_soft']}; color: {COLORS['warn_text']}; font-size: 10.5px; font-weight: 800; border: none; border-radius: 8px; padding: 5px 10px; }}
-QPushButton[cls="st_soon"]:hover  {{ background: #FDE68A; }}
+QPushButton[cls="st_soon"]:hover  {{ background: {COLORS['amber_soft']}; }}
 QPushButton[cls="st_sched"] {{ background: {COLORS['surface_alt']}; color: {COLORS['slate']}; font-size: 10.5px; font-weight: 800; border: none; border-radius: 8px; padding: 5px 10px; }}
-QPushButton[cls="st_sched"]:hover {{ background: #E2E8F0; }}
+QPushButton[cls="st_sched"]:hover {{ background: {COLORS['line']}; }}
 QLabel[cls="st_none"] {{ color: {COLORS['muted']}; font-weight: 800; }}
 
 /* ---------- fichas de máquinas ---------- */
