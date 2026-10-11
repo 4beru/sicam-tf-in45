@@ -50,6 +50,7 @@ class Shell(QMainWindow):
         self.setMinimumSize(1180, 720)
 
         central = QWidget()
+        central.setProperty("cls", "app_root")
         self.setCentralWidget(central)
         raiz = QHBoxLayout(central)
         raiz.setContentsMargins(0, 0, 0, 0)
@@ -143,6 +144,7 @@ class Shell(QMainWindow):
 
         # páginas dentro de un scroll con márgenes
         contenido = QWidget()
+        contenido.setProperty("cls", "page_content")
         cbox = QHBoxLayout(contenido)
         cbox.setContentsMargins(26, 22, 26, 22)
         self.stack = QStackedWidget()
