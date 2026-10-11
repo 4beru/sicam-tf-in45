@@ -1,4 +1,4 @@
-"""Semilla de datos sintéticos coherente con la referencia TF-IN45.
+"""Semilla de datos sintéticos para demostración del sistema.
 
 Genera:
   · Línea base 2024: tasa mensual ~10.4–11.2% (promedio 10.68%),
@@ -105,7 +105,7 @@ PESOS_CAUSA = [
     ("Gestión inadecuada de materiales",              7.32),
 ]
 
-# Tasa mensual 2024 (As-Is 10.68% promedio) — Fig. tendencia de la referencia
+# Tasa mensual 2024 (As-Is 10.68% promedio) — tendencia de referencia
 TASA_2024 = [11.2, 10.9, 10.8, 10.7, 10.6, 10.9, 10.5, 10.6, 10.7, 10.4, 10.7, 10.7]
 
 # Piloto 2026 (mes, tasa)
