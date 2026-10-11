@@ -6,8 +6,8 @@ from datetime import date
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QComboBox, QDateEdit, QGridLayout, QHBoxLayout, QLabel, QPushButton,
-    QSizePolicy, QSpinBox, QVBoxLayout, QWidget,
+    QComboBox, QDateEdit, QGridLayout, QHeaderView, QHBoxLayout, QLabel,
+    QPushButton, QSizePolicy, QSpinBox, QVBoxLayout, QWidget,
 )
 
 from ..core import db, queries
@@ -183,7 +183,16 @@ class ProduccionPage(QWidget):
 
         # Encabezados centrados; fechas y turnos centrados, texto descriptivo a
         # la izquierda y métricas numéricas alineadas a la derecha.
-        nueva.horizontalHeader().setDefaultAlignment(Qt.AlignmentFlag.AlignCenter)
+        header = nueva.horizontalHeader()
+        header.setDefaultAlignment(Qt.AlignmentFlag.AlignCenter)
+        # Las columnas con datos acotados se ajustan al contenido; Proceso
+        # aprovecha el ancho restante en vez de dejarlo todo en Tasa NC.
+        header.setStretchLastSection(False)
+        for columna in (0, 2, 3, 4, 5):
+            header.setSectionResizeMode(
+                columna, QHeaderView.ResizeMode.ResizeToContents
+            )
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         for fila_idx in range(nueva.rowCount()):
             fecha_item = nueva.item(fila_idx, 0)
             turno_item = nueva.item(fila_idx, 2)
