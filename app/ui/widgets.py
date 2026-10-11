@@ -57,6 +57,83 @@ class Card(QFrame):
         return self.vbox
 
 
+class ResponsiveGrid(QWidget):
+    """Reorganiza tarjetas según el ancho real disponible, sin reconstruirlas."""
+
+    def __init__(
+        self,
+        min_item_width: int = 220,
+        max_columns: int = 4,
+        spacing: int = 12,
+        center_items: bool = False,
+        parent=None,
+    ):
+        super().__init__(parent)
+        self._items: list[QWidget] = []
+        self._min_item_width = max(1, min_item_width)
+        self._max_columns = max(1, max_columns)
+        self._spacing = max(0, spacing)
+        self._center_items = center_items
+        self._columns = 0
+
+        self._grid = QGridLayout(self)
+        self._grid.setContentsMargins(0, 0, 0, 0)
+        self._grid.setHorizontalSpacing(self._spacing)
+        self._grid.setVerticalSpacing(self._spacing)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+
+    def set_items(self, items: list[QWidget]) -> None:
+        self._items = list(items)
+        self._columns = 0
+        self._reflow(force=True)
+
+    def _column_count(self) -> int:
+        width = max(1, self.contentsRect().width())
+        return max(
+            1,
+            min(
+                self._max_columns,
+                (width + self._spacing) // (self._min_item_width + self._spacing),
+            ),
+        )
+
+    def _reflow(self, force: bool = False) -> None:
+        if not self._items:
+            return
+        columns = self._column_count()
+        if not force and columns == self._columns:
+            return
+
+        while self._grid.count():
+            self._grid.takeAt(0)
+
+        # Cada columna lógica usa dos pistas para centrar también las filas
+        # incompletas (por ejemplo, tres tarjetas debajo de cuatro).
+        tracks = self._max_columns * 2
+        for col in range(tracks):
+            self._grid.setColumnStretch(col, 1 if col < columns * 2 else 0)
+
+        for index, widget in enumerate(self._items):
+            row = index // columns
+            col_in_row = index % columns
+            items_in_row = min(columns, len(self._items) - row * columns)
+            offset = columns - items_in_row if self._center_items and items_in_row < columns else 0
+            col = offset + col_in_row * 2
+            if self._center_items:
+                self._grid.addWidget(
+                    widget, row, col, 1, 2, Qt.AlignmentFlag.AlignHCenter
+                )
+            else:
+                self._grid.addWidget(widget, row, col, 1, 2)
+
+        self._columns = columns
+        self.updateGeometry()
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        self._reflow()
+
+
 class Kpi(QFrame):
     """Tarjeta de indicador: nombre, valor grande y metadatos (chips + texto)."""
 
@@ -64,11 +141,12 @@ class Kpi(QFrame):
                  chips: list[tuple[str, str]] | None = None, target: str = ""):
         super().__init__()
         _cls(self, "kpi")
-        self.setMinimumWidth(170)
+        self.setMinimumWidth(0)
+        self.setMaximumWidth(290)
         self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         v = QVBoxLayout(self)
-        v.setContentsMargins(14, 12, 14, 12)
-        v.setSpacing(4)
+        v.setContentsMargins(12, 9, 12, 9)
+        v.setSpacing(3)
 
         arriba = QHBoxLayout()
         ic = QLabel()
