@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import sqlite3
 
-from PySide6.QtCore import QSize, Qt, QTimer
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (
     QApplication, QButtonGroup, QComboBox, QFrame, QHBoxLayout, QLabel,
     QMainWindow, QPushButton, QScrollArea, QSizePolicy, QStackedWidget,
@@ -40,22 +40,6 @@ NAV = [
     ("datos",     "Sistema",    "Datos e importación", "database"),
 ]
 
-
-class ActivePageStack(QStackedWidget):
-    """Expone el tamaño de la página visible, no el de la página más grande."""
-
-    def sizeHint(self) -> QSize:
-        page = self.currentWidget()
-        if page is None:
-            return QSize(0, 0)
-        hint = page.sizeHint()
-        return hint if hint.isValid() else QSize(0, 0)
-
-    def minimumSizeHint(self) -> QSize:
-        # La altura preferida de la página activa determina si hace falta
-        # scroll; el ancho queda libre para que las cuadrículas puedan refluir.
-        hint = self.sizeHint()
-        return QSize(0, max(0, hint.height()))
 
 
 class Shell(QMainWindow):
@@ -160,28 +144,15 @@ class Shell(QMainWindow):
         self._sync_theme_button()
         derecha.addWidget(topbar)
 
-        # páginas dentro de un scroll con márgenes
-        contenido = QWidget()
-        contenido.setProperty("cls", "page_content")
-        cbox = QHBoxLayout(contenido)
-        cbox.setContentsMargins(26, 22, 26, 22)
-        self.stack = ActivePageStack()
-        # Anchura flexible para que el contenido refluya; altura basada en la
-        # página visible para que el scroll no herede espacio sobrante.
-        self.stack.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        cbox.addWidget(self.stack)
-        contenido.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QFrame.Shape.NoFrame)
-        scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        scroll.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
-        scroll.setStyleSheet("QScrollArea { background:transparent; }")
-        scroll.setWidget(contenido)
-        self.page_scroll = scroll
-        self.page_content = contenido
-        derecha.addWidget(scroll, 1)
+        # Stack de viewports independientes: cada sección gestiona su propio scroll.
+        # Así una página alta (p. ej. Tarjetas TPM) no determina la geometría de otra.
+        self.stack = QStackedWidget()
+        self.stack.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        )
+        self.page_scrolls: dict[str, QScrollArea] = {}
+        self.page_contents: dict[str, QWidget] = {}
+        derecha.addWidget(self.stack, 1)
         raiz.addLayout(derecha, 1)
 
         # ---------------- páginas
@@ -199,7 +170,28 @@ class Shell(QMainWindow):
             "datos": DatosPage(conn, self),
         }
         for pid, _, _, _ in NAV:
-            self.stack.addWidget(self.paginas[pid])
+            # Cada sección obtiene su propio QScrollArea. El widget interior
+            # conserva los márgenes actuales y siempre arranca alineado arriba.
+            contenido = QWidget()
+            contenido.setProperty("cls", "page_content")
+            cbox = QVBoxLayout(contenido)
+            cbox.setContentsMargins(26, 22, 26, 22)
+            cbox.setSpacing(0)
+            cbox.addWidget(self.paginas[pid])
+
+            scroll = QScrollArea()
+            scroll.setWidgetResizable(True)
+            scroll.setFrameShape(QFrame.Shape.NoFrame)
+            scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+            scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+            scroll.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+            scroll.setStyleSheet("QScrollArea { background:transparent; }")
+            scroll.setWidget(contenido)
+
+            self.page_scrolls[pid] = scroll
+            self.page_contents[pid] = contenido
+            self.stack.addWidget(scroll)
+        self._pid_actual = "dashboard"
 
         # ---------------- toast + statusbar + servidor
         self.toast_host = Toast(self)
@@ -237,7 +229,7 @@ class Shell(QMainWindow):
         from PySide6.QtWidgets import QApplication
         if QApplication.activeModalWidget() is not None:
             return
-        actual = self.stack.currentWidget()
+        actual = self.paginas.get(self._pid_actual)
         if actual is not None:
             actual.refresh()
             self._actualizar_geometria_pagina()
@@ -290,12 +282,16 @@ class Shell(QMainWindow):
 
     # ------------------------------------------------ navegación
     def ir_a(self, pid: str):
-        self.stack.setCurrentWidget(self.paginas[pid])
+        self._pid_actual = pid
+        viewport = self.page_scrolls[pid]
+        self.stack.setCurrentWidget(viewport)
+        # La navegación empieza arriba en la sección elegida; sus scrolls
+        # internos (tablas/kanban/listas) mantienen su propia independencia.
+        viewport.verticalScrollBar().setValue(0)
+        viewport.horizontalScrollBar().setValue(0)
         titulo = next(t for i, _, t, _ in NAV if i == pid)
         self.titulo.setText(titulo)
         self.paginas[pid].refresh()
-        # Recalcular el viewport a partir de la página activa para que una
-        # pantalla que cabe no conserve la altura mínima de otra sección.
         self._actualizar_geometria_pagina()
 
     def refresh_all(self, excepto: str | None = None):
@@ -305,33 +301,23 @@ class Shell(QMainWindow):
         self._actualizar_geometria_pagina()
 
     def _actualizar_geometria_pagina(self):
-        """Recalcula altura intrínseca y rango de scroll de la página visible."""
-        actual = self.stack.currentWidget()
-        if actual is not None and actual.layout() is not None:
-            actual.layout().activate()
+        """Actualiza solo la geometría de la sección activa y de su viewport."""
+        pid = getattr(self, "_pid_actual", None)
+        actual = self.paginas.get(pid)
+        viewport = self.page_scrolls.get(pid)
+        contenido = self.page_contents.get(pid)
+        if actual is not None:
+            if actual.layout() is not None:
+                actual.layout().activate()
+            actual.updateGeometry()
+        if contenido is not None:
+            if contenido.layout() is not None:
+                contenido.layout().activate()
+            contenido.updateGeometry()
+        if viewport is not None:
+            viewport.updateGeometry()
+            viewport.viewport().updateGeometry()
         self.stack.updateGeometry()
-        if self.page_content.layout() is not None:
-            self.page_content.layout().activate()
-        self.page_content.updateGeometry()
-        self.page_scroll.updateGeometry()
-        # Primero dejamos que Qt aplique el nuevo ancho y las columnas
-        # responsive; después fijamos la altura a la necesidad real del contenido.
-        QTimer.singleShot(0, self._sincronizar_altura_pagina)
-
-    def _sincronizar_altura_pagina(self):
-        actual = self.stack.currentWidget()
-        if actual is None:
-            return
-        if actual.layout() is not None:
-            actual.layout().activate()
-        size_hint = actual.sizeHint().height()
-        min_hint = actual.minimumSizeHint().height()
-        altura = max(0, size_hint, min_hint)
-        if altura and self.stack.height() != altura:
-            self.stack.setFixedHeight(altura)
-        self.stack.updateGeometry()
-        self.page_content.updateGeometry()
-        self.page_scroll.updateGeometry()
 
     # ------------------------------------------------ toast
     def toast(self, mensaje: str, tipo: str = "ok"):
@@ -351,7 +337,7 @@ class Shell(QMainWindow):
             self.pill.setVisible(self.width() >= 1120)
         if hasattr(self, "usuario"):
             self.usuario.setMaximumWidth(300 if self.width() >= 1120 else 220 if self.width() >= 820 else 175)
-        if hasattr(self, "page_scroll"):
+        if hasattr(self, "page_scrolls"):
             self._actualizar_geometria_pagina()
         if hasattr(self, "toast_host") and self.toast_host.isVisible():
             self._posicionar_toast()

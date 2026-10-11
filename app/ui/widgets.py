@@ -81,7 +81,10 @@ class ResponsiveGrid(QWidget):
         self._grid.setContentsMargins(0, 0, 0, 0)
         self._grid.setHorizontalSpacing(self._spacing)
         self._grid.setVerticalSpacing(self._spacing)
-        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        # The grid must grow horizontally, but its vertical extent should stay
+        # content-driven. Preferred allows the dashboard rows to absorb surplus
+        # height from the page stack, which can create large empty cards.
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Maximum)
 
     def set_items(self, items: list[QWidget]) -> None:
         self._items = list(items)
