@@ -3,16 +3,18 @@
 Genera:
   · Línea base 2024: tasa mensual ~10.4–11.2% (promedio 10.68%),
     causas distribuidas según el catálogo configurado (25.52 / 23.83 / 16.92 / 14.50 / 11.90 / 7.32).
-  · Piloto jul–set 2026: tasa descendente 8.9 → 8.1 → 7.2%.
+  · Piloto jul–nov 2026: tasa descendente 8.9 → 8.1 → 7.2 → 6.6 → 5.9%.
   · Máquinas, operarios, frecuencias y metas configurables.
 
 Determinista (semilla fija) para que las demostraciones sean reproducibles.
 """
 from __future__ import annotations
 
+import calendar
 import random
 import sqlite3
 from datetime import date, timedelta
+from pathlib import Path
 
 from . import db
 
@@ -108,8 +110,8 @@ PESOS_CAUSA = [
 # Tasa mensual 2024 (As-Is 10.68% promedio) — tendencia de referencia
 TASA_2024 = [11.2, 10.9, 10.8, 10.7, 10.6, 10.9, 10.5, 10.6, 10.7, 10.4, 10.7, 10.7]
 
-# Piloto 2026 (mes, tasa)
-PILOTO = {7: 8.9, 8: 8.1, 9: 7.2}
+# Piloto mensual sintético de julio a noviembre de 2026.
+PILOTO = {7: 8.9, 8: 8.1, 9: 7.2, 10: 6.6, 11: 5.9}
 
 VOLUMEN_DIARIO = {"Costura": 720, "Corte": 310, "Etiquetado": 260, "Acabado": 148}
 
@@ -195,8 +197,17 @@ def asegurar_maquinas_costura(conn: sqlite3.Connection) -> None:
 
 
 def siembra(conn: sqlite3.Connection, reset: bool = False) -> dict[str, int]:
-    """Puebla la base con datos sintéticos. Retorna conteos insertados."""
+    """Asegura una semilla repetible; conserva meses con datos propios.
+
+    reset=True reemplaza el contenido y regenera la base histórica y el piloto.
+    """
+    fotos_a_eliminar: list[Path] = []
     if reset:
+        fotos_a_eliminar = [
+            Path(fila["foto"]) for fila in conn.execute(
+                "SELECT foto FROM checklist_items WHERE foto IS NOT NULL AND foto != ''"
+            )
+        ]
         db.vaciar(conn)
 
     with conn:
@@ -209,60 +220,107 @@ def siembra(conn: sqlite3.Connection, reset: bool = False) -> dict[str, int]:
         )
         conn.executemany("INSERT OR IGNORE INTO metas VALUES (?,?,?,?)", METAS)
 
+    total = {"produccion": 0, "no_conformidades": 0, "prendas_nc": 0}
+
+    def periodo(inicio: date, fin: date, tasa_de, semilla: int) -> None:
+        # Si un mes tiene contenido, se conserva: puede haber datos operativos/importados.
+        if not reset:
+            p_existente = conn.execute(
+                "SELECT COUNT(*) FROM produccion WHERE fecha BETWEEN ? AND ?",
+                (inicio.isoformat(), fin.isoformat()),
+            ).fetchone()[0]
+            nc_existentes = conn.execute(
+                "SELECT COUNT(*) FROM no_conformidades WHERE fecha BETWEEN ? AND ?",
+                (inicio.isoformat(), fin.isoformat()),
+            ).fetchone()[0]
+            if p_existente or nc_existentes:
+                return
+
+        RNG.seed(semilla)
         filas_prod: list[tuple] = []
         filas_nc: list[tuple] = []
+        d = inicio
+        while d <= fin:
+            if d.weekday() != 6:
+                iso = d.isoformat()
+                for proceso, base in VOLUMEN_DIARIO.items():
+                    insp = int(base * (1 + RNG.uniform(-0.08, 0.08)))
+                    nc = int(round(insp * tasa_de(d) / 100.0))
+                    manana = int(insp * 0.55)
+                    filas_prod.append((iso, proceso, "Mañana", manana, int(nc * 0.55)))
+                    filas_prod.append((iso, proceso, "Tarde", insp - manana, nc - int(nc * 0.55)))
+                    filas_nc.extend(_generar_nc_dia(iso, proceso, nc))
+            d += timedelta(days=1)
 
-        def periodo(inicio: date, fin: date, tasa_de: "callable") -> None:
-            d = inicio
-            while d <= fin:
-                if d.weekday() != 6:  # domingo sin producción
-                    iso = d.isoformat()
-                    for proceso, base in VOLUMEN_DIARIO.items():
-                        insp = int(base * (1 + RNG.uniform(-0.08, 0.08)))
-                        nc = int(round(insp * tasa_de(d) / 100.0))
-                        # producción en dos turnos (55 / 45)
-                        m = int(insp * 0.55)
-                        filas_prod.append((iso, proceso, "Mañana", m, int(nc * 0.55)))
-                        filas_prod.append((iso, proceso, "Tarde", insp - m, nc - int(nc * 0.55)))
-                        filas_nc.extend(_generar_nc_dia(iso, proceso, nc))
-                d += timedelta(days=1)
+        with conn:
+            conn.executemany(
+                "INSERT INTO produccion "
+                "(fecha, proceso, turno, inspeccionadas, nc_detectadas, origen_dato) "
+                "VALUES (?,?,?,?,?,'semilla') "
+                "ON CONFLICT (fecha, proceso, turno) DO UPDATE SET "
+                "inspeccionadas=excluded.inspeccionadas, "
+                "nc_detectadas=excluded.nc_detectadas, origen_dato=excluded.origen_dato",
+                filas_prod,
+            )
+            conn.executemany(
+                "INSERT INTO no_conformidades "
+                "(fecha, turno, proceso, causa, defecto, operario, maquina, cantidad, "
+                "observacion, origen_dato) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                [fila + ("semilla",) for fila in filas_nc],
+            )
+        total["produccion"] += len(filas_prod)
+        total["no_conformidades"] += len(filas_nc)
+        total["prendas_nc"] += sum(fila[7] for fila in filas_nc)
 
-        # Línea base 2024
-        periodo(date(2024, 1, 1), date(2024, 12, 31),
-                lambda d: TASA_2024[d.month - 1])
-        # Piloto 2026 (hasta la fecha de la maqueta)
-        periodo(date(2026, 7, 1), date(2026, 9, 13),
-                lambda d: PILOTO[d.month])
+    # Semilla independiente por mes para completar periodos sin alterar los previos.
+    for mes in range(1, 13):
+        inicio = date(2024, mes, 1)
+        fin = date(2024, mes, calendar.monthrange(2024, mes)[1])
+        periodo(inicio, fin, lambda d: TASA_2024[d.month - 1], 202400 + mes)
 
-        conn.executemany(
-            "INSERT INTO produccion (fecha, proceso, turno, inspeccionadas, nc_detectadas) "
-            "VALUES (?,?,?,?,?) "
-            "ON CONFLICT (fecha, proceso, turno) DO UPDATE SET "
-            "inspeccionadas=excluded.inspeccionadas, nc_detectadas=excluded.nc_detectadas",
-            filas_prod,
-        )
-        conn.executemany(
-            "INSERT INTO no_conformidades (fecha, turno, proceso, causa, defecto, operario, "
-            "maquina, cantidad, observacion) VALUES (?,?,?,?,?,?,?,?,?)",
-            filas_nc,
-        )
+    for mes, tasa in PILOTO.items():
+        inicio = date(2026, mes, 1)
+        fin = date(2026, mes, calendar.monthrange(2026, mes)[1])
+        periodo(inicio, fin, lambda _d, tasa=tasa: tasa, 202600 + mes)
+
+    if reset or not conn.execute("SELECT COUNT(*) FROM checklists").fetchone()[0]:
+        fase2 = sembrar_fase2(conn)
+    else:
+        from . import checklists
+        if not conn.execute("SELECT COUNT(*) FROM plantilla_checklist").fetchone()[0]:
+            checklists.sembrar_plantillas(conn)
+        fase2 = {"checklists": 0, "tarjetas_tpm": 0}
+
+    if reset or not conn.execute("SELECT COUNT(*) FROM plan_ejecuciones").fetchone()[0]:
+        fase3 = sembrar_fase3(conn)
+    else:
+        fase3 = {"plan_ejecuciones": 0}
 
     sembrar_fase4(conn)
 
-    return {
-        "produccion": len(filas_prod),
-        "no_conformidades": len(filas_nc),
-        "prendas_nc": sum(f[7] for f in filas_nc),
-    } | sembrar_fase2(conn) | sembrar_fase3(conn)
+    # Borrar evidencia anterior solo dentro de la carpeta administrada por SICAM.
+    if reset:
+        carpeta_fotos = (db.ruta_data() / "fotos").resolve()
+        for foto in fotos_a_eliminar:
+            try:
+                ruta = foto.resolve()
+                if ruta.is_relative_to(carpeta_fotos) and ruta.is_file():
+                    ruta.unlink()
+            except OSError:
+                continue
+
+    return total | fase2 | fase3
 
 
 def sembrar_fase4(conn: sqlite3.Connection) -> None:
-    """Umbrales IoT y 60 lecturas de historial por máquina."""
+    """Completa IoT solo cuando faltan configuración o historial."""
     from . import iot
 
-    iot.sembrar_umbrales(conn)
-    for codigo, *_ in MAQUINAS:
-        iot.generar_historial(conn, codigo, n=60)
+    if not conn.execute("SELECT COUNT(*) FROM iot_umbrales").fetchone()[0]:
+        iot.sembrar_umbrales(conn)
+    if not conn.execute("SELECT COUNT(*) FROM iot_lecturas").fetchone()[0]:
+        for codigo, *_ in MAQUINAS:
+            iot.generar_historial(conn, codigo, n=60)
 
 
 def sembrar_fase3(conn: sqlite3.Connection) -> dict[str, int]:
@@ -312,9 +370,9 @@ def sembrar_fase2(conn: sqlite3.Connection) -> dict[str, int]:
     plan_hoy = [
         ("Costura 001", "Tarde", "Rojas M.", {"Tensión del hilo (prueba en retazo)": ("Moderada", "Costura fruncida al iniciar.")}),
         ("Costura 002", "Mañana", "Torres L.", {}),
-        ("Costura 003", "Mañana", "Quispe J.", {"Estado de cuchilla (corte limpio)": ("Crítica", "Cortes irregulares en tela.")}),
-        ("Costura 005", "Mañana", "Huamán R.", {}),
-        ("Costura 007", "Tarde", "Medina K.", {}),
+        ("Costura 003", "Mañana", "Ccahuana P.", {"Pedal y parada de emergencia": ("Crítica", "La parada de emergencia requiere una segunda pulsación.")}),
+        ("Costura 005", "Mañana", "Flores A.", {}),
+        ("Costura 007", "Tarde", "Vilca S.", {}),
     ]
     hora_base = datetime.now()
     for maquina, turno, operario, fallas in plan_hoy:
@@ -336,8 +394,8 @@ def sembrar_fase2(conn: sqlite3.Connection) -> dict[str, int]:
     # tarjetas de muestra en distintos estados (distintos estados)
     extra = [
         ("Seguridad", "Crítica", "Costura 005", "Protector de cuchilla retirado; riesgo de corte en operación.", "abierta"),
-        ("Operación", "Leve", "Costura 007", "Secuencia incorrecta de etiquetado detectada en lote.", "abierta"),
-        ("Mantenimiento", "Moderada", "Costura 003", "Cuchilla desafilada generando cortes irregulares.", "atencion"),
+        ("Operación", "Leve", "Costura 007", "Secuencia incorrecta de operación detectada en la estación.", "abierta"),
+        ("Mantenimiento", "Moderada", "Costura 003", "Tensión de hilo desajustada generando costuras irregulares.", "atencion"),
         ("Mantenimiento", "Leve", "Costura 002", "Falta de lubricación leve en bandeja inferior.", "cerrada"),
     ]
     for tipo, sev, maq, desc, estado in extra:
