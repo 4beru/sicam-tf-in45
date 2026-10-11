@@ -14,10 +14,10 @@ from PySide6.QtWidgets import QWidget
 from .theme import COLORS
 
 TEAL = QColor(COLORS["teal"])
-TEAL_CLARO = QColor("#A5D8D4")
-SLATE = QColor("#334155")
-GRIS = QColor("#64748b")
-GRIS_CLARO = QColor("#F1F5F9")
+TEAL_CLARO = QColor(COLORS["teal_soft"])
+SLATE = QColor(COLORS["ink"])
+GRIS = QColor(COLORS["muted"])
+GRIS_CLARO = QColor(COLORS["surface_alt"])
 EJE = QColor(COLORS["line"])
 AMBAR = QColor(COLORS["amber"])
 VERDE = QColor(COLORS["green"])
@@ -316,7 +316,7 @@ class TendenciaWidget(QWidget):
         p.setPen(QPen(VERDE, 1.6, Qt.PenStyle.DashLine))
         p.drawLine(pl, Y(self._to_be), pl + cw, Y(self._to_be))
         f = QFont(fuente); f.setBold(True); p.setFont(f)
-        p.setPen(QPen(QColor("#15803D")))
+        p.setPen(QPen(QColor(COLORS["good_text"])))
         p.drawText(QRectF(pl + cw + 2, Y(self._to_be) - 7, pr + 40, 14),
                    Qt.AlignmentFlag.AlignLeft, f"{self._to_be:.2f}%")
         p.setFont(fuente)
@@ -343,10 +343,10 @@ class GaugeWidget(QWidget):
     numérico y la etiqueta van en el card que lo contiene.
     """
 
-    ROJO = QColor("#EF4444")
-    AMBAR = QColor("#F59E0B")
-    VERDE = QColor("#22C55E")
-    AGUJA = QColor("#0F172A")
+    ROJO = QColor(COLORS["red"])
+    AMBAR = QColor(COLORS["amber"])
+    VERDE = QColor(COLORS["green"])
+    AGUJA = QColor(COLORS["ink"])
 
     def __init__(self):
         super().__init__()
@@ -416,7 +416,7 @@ class GaugeWidget(QWidget):
         cx, cy = w / 2, h * 0.58
         R = min(w * 0.42, h * 0.62)
         rect = QRectF(cx - R, cy - R, 2 * R, 2 * R)
-        p.setPen(QPen(QColor("#E2E8F0"), 11, Qt.PenStyle.SolidLine, Qt.PenCapStyle.FlatCap))
+        p.setPen(QPen(QColor(COLORS["line"]), 11, Qt.PenStyle.SolidLine, Qt.PenCapStyle.FlatCap))
         p.drawArc(rect, int(-135 * 16), int(-270 * 16))
         p.setPen(GRIS)
         p.drawText(self.rect(), Qt.AlignmentFlag.AlignCenter, "Sin datos")
@@ -487,7 +487,7 @@ class LineaEnVivoWidget(QWidget):
 
         p.setPen(QPen(QColor("#EF4444"), 1.3, Qt.PenStyle.DashLine))
         p.drawLine(padL, y(a_hi), padL + cw, y(a_hi))
-        p.setPen(QPen(QColor("#B91C1C")))
+        p.setPen(QPen(QColor(COLORS["bad_text"])))
         p.drawText(QRectF(0, y(a_hi) - 7, padL - 6, 14),
                    Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter,
                    f"C {self._fmt(a_hi)}")
@@ -535,3 +535,21 @@ class LineaEnVivoWidget(QWidget):
                    Qt.AlignmentFlag.AlignLeft, "hace 60 min")
         p.drawText(QRectF(padL + cw - 122, fondo + 4, 120, 14),
                    Qt.AlignmentFlag.AlignRight, "ahora")
+
+
+
+def actualizar_colores_tema():
+    """Actualiza los colores cacheados por los widgets QPainter al cambiar tema."""
+    global TEAL, TEAL_CLARO, SLATE, GRIS, GRIS_CLARO, EJE, AMBAR, VERDE
+    TEAL = QColor(COLORS["teal"])
+    TEAL_CLARO = QColor(COLORS["teal_soft"])
+    SLATE = QColor(COLORS["ink"])
+    GRIS = QColor(COLORS["muted"])
+    GRIS_CLARO = QColor(COLORS["surface_alt"])
+    EJE = QColor(COLORS["line"])
+    AMBAR = QColor(COLORS["amber"])
+    VERDE = QColor(COLORS["green"])
+    GaugeWidget.ROJO = QColor(COLORS["red"])
+    GaugeWidget.AMBAR = QColor(COLORS["amber"])
+    GaugeWidget.VERDE = QColor(COLORS["green"])
+    GaugeWidget.AGUJA = QColor(COLORS["ink"])
