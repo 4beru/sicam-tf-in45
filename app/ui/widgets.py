@@ -101,11 +101,28 @@ class ResponsiveGrid(QWidget):
             ),
         )
 
+    def _size_centered_items(self, columns: int) -> None:
+        if not self._center_items or not self._items:
+            return
+        width = max(1, self.contentsRect().width())
+        cell_width = max(
+            self._min_item_width,
+            (width - self._spacing * (columns - 1)) // columns,
+        )
+        max_width = min(widget.maximumWidth() for widget in self._items)
+        item_width = max(self._min_item_width, min(max_width, cell_width))
+        for widget in self._items:
+            if widget.minimumWidth() != item_width or widget.maximumWidth() != item_width:
+                widget.setFixedWidth(item_width)
+
     def _reflow(self, force: bool = False) -> None:
         if not self._items:
             return
         columns = self._column_count()
         if not force and columns == self._columns:
+            # Aunque no cambie el número de columnas, las tarjetas KPI dejan
+            # de crecer al alcanzar su ancho máximo y permanecen uniformes.
+            self._size_centered_items(columns)
             return
 
         while self._grid.count():
@@ -117,15 +134,19 @@ class ResponsiveGrid(QWidget):
         for col in range(tracks):
             self._grid.setColumnStretch(col, 1 if col < columns * 2 else 0)
 
+        self._size_centered_items(columns)
         for index, widget in enumerate(self._items):
             row = index // columns
             col_in_row = index % columns
             items_in_row = min(columns, len(self._items) - row * columns)
             offset = columns - items_in_row if self._center_items and items_in_row < columns else 0
             col = offset + col_in_row * 2
-            # Sin alignment explícita la tarjeta rellena su celda y todas
-            # las columnas conservan el mismo ancho; el offset centra la fila.
-            self._grid.addWidget(widget, row, col, 1, 2)
+            if self._center_items:
+                self._grid.addWidget(
+                    widget, row, col, 1, 2, Qt.AlignmentFlag.AlignHCenter
+                )
+            else:
+                self._grid.addWidget(widget, row, col, 1, 2)
 
         self._columns = columns
         self.updateGeometry()
