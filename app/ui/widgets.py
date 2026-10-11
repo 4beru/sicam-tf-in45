@@ -89,6 +89,10 @@ class ResponsiveGrid(QWidget):
 
     def _column_count(self) -> int:
         width = max(1, self.contentsRect().width())
+        # Durante la construcción todavía no hay un ancho real. Usar la
+        # cantidad máxima evita calcular un sizeHint inicial exageradamente alto.
+        if width < self._min_item_width and not self.isVisible():
+            return self._max_columns
         return max(
             1,
             min(
