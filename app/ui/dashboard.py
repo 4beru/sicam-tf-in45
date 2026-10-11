@@ -9,7 +9,7 @@ from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 from ..core import checklists, iot, plan_tpm, queries
 from .charts import ParetoWidget, TendenciaWidget
 from .theme import COLORS
-from .widgets import Card, Kpi, fila_kpis, tabla, vaciar_layout
+from .widgets import Card, Kpi, ResponsiveGrid, tabla, vaciar_layout
 
 DER = Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
 
@@ -59,11 +59,11 @@ class DashboardPage(QWidget):
         m_plan = queries.metas(self.conn).get("Cumplimiento del plan TPM", (60, 85))
         en_plan = plan_r["cumplimiento"] >= m_plan[1]
 
-        fila_kpis([
+        kpis = [
             Kpi(f"Tasa NC · {mes_et}", f"{r['tasa']:.2f}%", "trend", chips_tasa,
                 f"As-Is {as_is:.2f} · Meta {to_be:.2f}"),
             Kpi(f"NC · {mes_et}", _num(r["nc"]), "nc",
-                [(f"{proceso_top[0]} {_num(proceso_top[1])}", "info")] if por_proceso else [],
+                [(f"{proceso_top[0]} · {_num(proceso_top[1])}", "info")] if por_proceso else [],
                 "prendas no conformes"),
             Kpi("Cumpl. checklist · hoy", f"{cump['pct']:.0f}%", "checklist",
                 [("✔ en meta" if en_cump else f"meta ≥ {m_cump[1]:.0f}%",
@@ -75,38 +75,43 @@ class DashboardPage(QWidget):
                 f"{plan_r['vencidas']} vencidas · {plan_r['ejecutadas']} ejecutadas"),
             Kpi("Causa #1 (Pareto)", f"{causa_top[2]:.1f}%", "alert",
                 [(causa_top[0].split()[0] + "…", "purple")], causa_top[0][:38]),
-            Kpi("Proceso crítico", proceso_top[0], "wrench",
-                [(_num(proceso_top[1]) + " NC", "bad")]),
+            Kpi("Prendas inspeccionadas", _num(r["insp"]), "package",
+                [], "base de cálculo de la tasa NC"),
             Kpi("Alertas IoT activas", _num(iot.alertas_pendientes(self.conn)), "activity",
                 [("En vivo · simulador", "teal")], "sin atender"),
-        ], self.layout_principal, por_fila=4)
+        ]
+        grid_kpis = ResponsiveGrid(
+            min_item_width=220, max_columns=4, spacing=12, center_items=True
+        )
+        grid_kpis.set_items(kpis)
+        self.layout_principal.addWidget(grid_kpis)
 
-        # ---------------- gráficos
-        fila = QHBoxLayout()
-        fila.setSpacing(14)
-
+        # ---------------- gráficos adaptables
         c1 = Card("Pareto de causas de no conformidad")
-        pareto = ParetoWidget()
+        pareto = ParetoWidget(min_height=220)
         pareto.set_datos(queries.pareto(self.conn))
         h = QLabel("Barras: % de prendas defectuosas por causa · Línea: % acumulado · Punteada ámbar: corte 80/20.")
         h.setProperty("cls", "hint")
+        h.setWordWrap(True)
         c1.vbox.addWidget(pareto)
         c1.vbox.addWidget(h)
-        fila.addWidget(c1, 1)
 
         c2 = Card("Tasa de NC — As-Is → Piloto → To-Be")
-        tendencia = TendenciaWidget()
+        tendencia = TendenciaWidget(min_height=220)
         tendencia.set_datos(queries.tasa_mensual(self.conn), as_is, to_be)
         h2 = QLabel("Gris: línea base 2024 · Teal: piloto 2026 · Punteada verde: meta To-Be del sector exportador.")
         h2.setProperty("cls", "hint")
+        h2.setWordWrap(True)
         c2.vbox.addWidget(tendencia)
         c2.vbox.addWidget(h2)
-        fila.addWidget(c2, 1)
-        self.layout_principal.addLayout(fila)
 
-        # ---------------- rankings
-        fila2 = QHBoxLayout()
-        fila2.setSpacing(14)
+        grid_graficos = ResponsiveGrid(
+            min_item_width=460, max_columns=2, spacing=14
+        )
+        grid_graficos.set_items([c1, c2])
+        self.layout_principal.addWidget(grid_graficos)
+
+        # ---------------- rankings adaptables
 
         c3 = Card("Operarios con más NC · Corte")
         filas_ops = []
@@ -123,7 +128,7 @@ class DashboardPage(QWidget):
             ])
         c3.vbox.addWidget(tabla(["#", "Operario", "NC", "Causa dominante"],
                                 filas_ops or [["—", "—", "—", "—"]]))
-        fila2.addWidget(c3, 1)
+
 
         c4 = Card("Máquinas con más NC asociadas")
         critic = {row["codigo"]: row["criticidad"]
@@ -132,6 +137,9 @@ class DashboardPage(QWidget):
                       for mid, n in queries.ranking_maquinas(self.conn)]
         c4.vbox.addWidget(tabla(["Máquina", "Criticidad", "NC (piloto)"],
                                 filas_maqs or [["—", "—", "—"]]))
-        fila2.addWidget(c4, 1)
-        self.layout_principal.addLayout(fila2)
+        grid_rankings = ResponsiveGrid(
+            min_item_width=460, max_columns=2, spacing=14
+        )
+        grid_rankings.set_items([c3, c4])
+        self.layout_principal.addWidget(grid_rankings)
         self.layout_principal.addStretch(1)
