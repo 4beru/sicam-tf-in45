@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import os
 import sys
-from pathlib import Path
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
@@ -32,7 +31,7 @@ def conn(tmp_path, monkeypatch):
 
 
 def test_restaurar_piloto_recupera_mes_catalogo_y_evidencias(
-    conn, app, tmp_path, monkeypatch
+    conn, app, monkeypatch
 ):
     carpeta_fotos = db.ruta_data() / "fotos"
     carpeta_fotos.mkdir(parents=True)
