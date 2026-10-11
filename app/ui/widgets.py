@@ -123,12 +123,9 @@ class ResponsiveGrid(QWidget):
             items_in_row = min(columns, len(self._items) - row * columns)
             offset = columns - items_in_row if self._center_items and items_in_row < columns else 0
             col = offset + col_in_row * 2
-            if self._center_items:
-                self._grid.addWidget(
-                    widget, row, col, 1, 2, Qt.AlignmentFlag.AlignHCenter
-                )
-            else:
-                self._grid.addWidget(widget, row, col, 1, 2)
+            # Sin alignment explícita la tarjeta rellena su celda y todas
+            # las columnas conservan el mismo ancho; el offset centra la fila.
+            self._grid.addWidget(widget, row, col, 1, 2)
 
         self._columns = columns
         self.updateGeometry()
@@ -145,7 +142,7 @@ class Kpi(QFrame):
                  chips: list[tuple[str, str]] | None = None, target: str = ""):
         super().__init__()
         _cls(self, "kpi")
-        self.setMinimumWidth(0)
+        self.setMinimumWidth(220)
         self.setMaximumWidth(290)
         self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         v = QVBoxLayout(self)
