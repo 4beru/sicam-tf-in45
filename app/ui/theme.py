@@ -69,6 +69,7 @@ QWidget[cls="app_root"], QWidget[cls="page_content"] {{
 /* ---------- sidebar ---------- */
 QFrame#sidebar {{ background: {COLORS['sidebar']}; border: none; }}
 QLabel#brand {{ color: #F8FAFC; font-size: 17px; font-weight: 800; }}
+QLabel#brand[compact="true"] {{ font-size: 20px; letter-spacing: 0.5px; }}
 QLabel#brand_sub {{ color: {COLORS['sidebar_ink']}; font-size: 10.5px; }}
 QLabel#nav_section {{
     color: {COLORS['sidebar_ink']}; font-size: 10px; font-weight: 800;
