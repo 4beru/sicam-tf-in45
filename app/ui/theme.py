@@ -123,6 +123,10 @@ QFrame[cls="kpi"] {{
 QLabel[cls="kpi_name"] {{ color: {COLORS['muted']}; font-size: 11px; font-weight: 700; }}
 QLabel[cls="kpi_value"] {{ font-size: 26px; font-weight: 800; }}
 QLabel[cls="kpi_target"] {{ color: {COLORS['muted']}; font-size: 10px; }}
+QLabel[cls="summary_label"] {{ color: {COLORS['muted']}; font-size: 10.5px; font-weight: 700; }}
+QLabel[cls="summary_value"] {{ color: {COLORS['ink']}; font-size: 21px; font-weight: 800; }}
+QLabel[cls="summary_primary"] {{ color: {COLORS['ink']}; font-size: 29px; font-weight: 800; }}
+QLabel[cls="summary_detail"] {{ color: {COLORS['muted']}; font-size: 10.5px; }}
 
 /* ---------- chips ---------- */
 QLabel[cls="chip_good"] {{ background: {COLORS['green_soft']};  color: {COLORS['good_text']}; font-size: 10.5px; font-weight: 800; padding: 3px 9px; border-radius: 10px; }}
