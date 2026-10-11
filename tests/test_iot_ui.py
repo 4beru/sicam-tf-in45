@@ -148,12 +148,12 @@ def test_guardar_umbrales_actualiza_clasificacion(shell, conn):
 def test_cambio_de_maquina_repinta_gauges(shell, conn):
     page = shell.paginas["iot"]
 
-    page.combo_maquinas.setCurrentText("RECT-01")
+    page.combo_maquinas.setCurrentText("Costura 002")
     QApplication.processEvents()
     page.refresh()
     QApplication.processEvents()
 
-    ultima = iot.ultima_lectura(conn, "RECT-01", "tension")
+    ultima = iot.ultima_lectura(conn, "Costura 002", "tension")
     esperado = f"{ultima['valor']:.1f} cN" if ultima else "—"
     assert page._gauges["tension"]["valor"].text() == esperado
 
@@ -181,10 +181,10 @@ def test_toggle_simulador_controla_inserciones(shell, conn):
 def test_sin_lecturas_maquina(shell, conn):
     page = shell.paginas["iot"]
 
-    conn.execute("DELETE FROM iot_lecturas WHERE maquina = 'COR-01'")
+    conn.execute("DELETE FROM iot_lecturas WHERE maquina = 'Costura 030'")
     conn.commit()
 
-    page.combo_maquinas.setCurrentText("COR-01")
+    page.combo_maquinas.setCurrentText("Costura 030")
     QApplication.processEvents()
     page.refresh()  # no debe lanzar excepción
     QApplication.processEvents()
