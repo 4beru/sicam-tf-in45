@@ -52,12 +52,9 @@ class ActivePageStack(QStackedWidget):
         return hint if hint.isValid() else QSize(0, 0)
 
     def minimumSizeHint(self) -> QSize:
-        page = self.currentWidget()
-        if page is None:
-            return QSize(0, 0)
-        hint = page.minimumSizeHint()
-        # El ancho mínimo no debe imponer la cuadrícula de escritorio (4 cols)
-        # antes de que el viewport pueda informar su anchura real al contenido.
+        # La altura preferida de la página activa determina si hace falta
+        # scroll; el ancho queda libre para que las cuadrículas puedan refluir.
+        hint = self.sizeHint()
         return QSize(0, max(0, hint.height()))
 
 
