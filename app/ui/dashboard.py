@@ -35,18 +35,19 @@ class DashboardPage(QWidget):
         mes_et = queries.etiqueta_mes(r["mes"]) if r["mes"] else "—"
 
         # ---------------- KPIs
+        en_meta = r["tasa"] <= to_be
         chips_tasa = []
         if r.get("tasa_prev") is not None:
             delta = round(r["tasa"] - r["tasa_prev"], 2)
             if delta < 0:
-                chips_tasa.append((f"▼ {abs(delta):.2f} pts vs mes anterior", "good"))
+                chips_tasa.append((f"▼ {abs(delta):.2f} pts", "good"))
             elif delta > 0:
-                chips_tasa.append((f"▲ +{delta:.2f} pts vs mes anterior", "bad"))
+                chips_tasa.append((f"▲ +{delta:.2f} pts", "bad"))
             else:
-                chips_tasa.append(("= sin cambio vs mes anterior", "info"))
-        en_meta = r["tasa"] <= to_be
-        chips_tasa.append(("✔ en meta" if en_meta else f"meta {to_be}%",
-                           "good" if en_meta else "warn"))
+                chips_tasa.append(("= sin cambio", "info"))
+        else:
+            chips_tasa.append(("✔ en meta" if en_meta else f"meta {to_be}%",
+                               "good" if en_meta else "warn"))
 
         por_proceso = r.get("por_proceso") or []
         proceso_top = por_proceso[0] if por_proceso else ("—", 0)
@@ -61,7 +62,9 @@ class DashboardPage(QWidget):
 
         kpis = [
             Kpi(f"Tasa NC · {mes_et}", f"{r['tasa']:.2f}%", "trend", chips_tasa,
-                f"As-Is {as_is:.2f} · Meta {to_be:.2f}"),
+                (f"vs mes anterior · As-Is {as_is:.2f} · Meta {to_be:.2f}"
+                 if r.get("tasa_prev") is not None
+                 else f"As-Is {as_is:.2f} · Meta {to_be:.2f}")),
             Kpi(f"NC · {mes_et}", _num(r["nc"]), "nc",
                 [(f"{proceso_top[0]} · {_num(proceso_top[1])}", "info")] if por_proceso else [],
                 "prendas no conformes"),
