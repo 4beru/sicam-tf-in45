@@ -84,6 +84,15 @@ QPushButton#nav_btn:checked {{
     background: rgba(13,148,136,0.25); color: #5EEAD4; font-weight: 700;
 }}
 QLabel#sidebar_foot {{ color: {COLORS['sidebar_ink']}; font-size: 10.5px; }}
+QPushButton#sidebar_toggle {{
+    color: {COLORS['sidebar_ink']};
+    background: transparent; border: none; border-radius: 8px; padding: 4px;
+}}
+QPushButton#sidebar_toggle:hover {{ background: rgba(148,163,184,0.16); color: #E2E8F0; }}
+QPushButton#sidebar_toggle:focus-visible {{ border: 1px solid {COLORS['teal']}; }}
+QPushButton#nav_btn[collapsed="true"] {{
+    text-align: center; padding: 9px 0px;
+}}
 
 /* ---------- topbar ---------- */
 QLabel#page_title {{ font-size: 19px; font-weight: 800; }}
