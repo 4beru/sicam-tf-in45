@@ -5,6 +5,7 @@ LIGHT_COLORS = {
     "bg": "#EEF2F7", "surface": "#FFFFFF", "surface_alt": "#F8FAFC",
     "line": "#E2E8F0", "ink": "#0F172A", "muted": "#64748B",
     "teal": "#0D9488", "teal_dark": "#0F766E", "teal_soft": "#CCFBF1",
+    "primary_bg": "#0D9488", "primary_hover": "#0F766E", "primary_text": "#FFFFFF",
     "amber": "#F59E0B", "amber_soft": "#FEF3C7", "red": "#EF4444",
     "red_soft": "#FEE2E2", "green": "#22C55E", "green_soft": "#DCFCE7",
     "purple": "#8B5CF6", "purple_soft": "#EDE9FE",
@@ -21,6 +22,7 @@ DARK_COLORS = {
     "bg": "#0B1220", "surface": "#111C2E", "surface_alt": "#172337",
     "line": "#2A3A50", "ink": "#E6EDF7", "muted": "#9AAEC4",
     "teal": "#2DD4BF", "teal_dark": "#5EEAD4", "teal_soft": "#123E3D",
+    "primary_bg": "#0F766E", "primary_hover": "#115E59", "primary_text": "#FFFFFF",
     "amber": "#FBBF24", "amber_soft": "#423316", "red": "#F87171",
     "red_soft": "#451D29", "green": "#4ADE80", "green_soft": "#143A2B",
     "purple": "#C4B5FD", "purple_soft": "#30264F",
@@ -102,7 +104,6 @@ QFrame[cls="topbar"] {{
     background: {COLORS['surface']}; border: none;
     border-bottom: 1px solid {COLORS['line']};
 }}
-QFrame[cls="topbar"] {{ background: {COLORS['surface']}; border: none; border-bottom: 1px solid {COLORS['line']}; }}
 QLabel[cls="card_title"] {{ font-size: 14px; font-weight: 800; }}
 QLabel[cls="ref"] {{
     color: {COLORS['muted']}; font-size: 10.5px; font-weight: 700;
@@ -131,10 +132,10 @@ QLabel[cls="chip_purple"] {{ background: {COLORS['purple_soft']}; color: {COLORS
 
 /* ---------- botones ---------- */
 QPushButton[cls="primary"] {{
-    background: {COLORS['teal']}; color: white; font-weight: 700;
+    background: {COLORS['primary_bg']}; color: {COLORS['primary_text']}; font-weight: 700;
     border: none; border-radius: 9px; padding: 8px 16px;
 }}
-QPushButton[cls="primary"]:hover {{ background: {COLORS['teal_dark']}; }}
+QPushButton[cls="primary"]:hover {{ background: {COLORS['primary_hover']}; }}
 QPushButton[cls="primary"]:disabled {{ background: #94A3B8; }}
 QPushButton[cls="ghost"] {{
     background: {COLORS['surface']}; color: {COLORS['slate']}; font-weight: 600;
@@ -147,7 +148,7 @@ QPushButton[cls="chipbtn"] {{
     font-size: 11.5px;
 }}
 QPushButton[cls="chipbtn"]:hover {{ border-color: {COLORS['teal']}; color: {COLORS['teal_dark']}; }}
-QPushButton[cls="chipbtn"]:checked {{ background: {COLORS['teal']}; color: white; border-color: {COLORS['teal']}; }}
+QPushButton[cls="chipbtn"]:checked {{ background: {COLORS['primary_bg']}; color: {COLORS['primary_text']}; border-color: {COLORS['primary_bg']}; }}
 
 /* ---------- inputs ---------- */
 QComboBox, QSpinBox, QDoubleSpinBox, QDateEdit, QLineEdit, QPlainTextEdit {{
