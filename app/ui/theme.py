@@ -95,6 +95,7 @@ QFrame[cls="card"] {{
     background: {COLORS['surface']}; border: 1px solid {COLORS['line']};
     border-radius: 13px;
 }}
+QFrame[cls="topbar"] {{ background: {COLORS['surface']}; border: none; border-bottom: 1px solid {COLORS['line']}; }}
 QLabel[cls="card_title"] {{ font-size: 14px; font-weight: 800; }}
 QLabel[cls="ref"] {{
     color: {COLORS['muted']}; font-size: 10.5px; font-weight: 700;
@@ -181,14 +182,14 @@ QFrame[cls="banner"] {{
 QLabel[cls="banner_txt"] {{ color: {COLORS['teal_text']}; font-size: 12.5px; }}
 
 /* ---------- plan TPM: celdas de semana ---------- */
-QPushButton[cls="st_done"]  {{ background: {COLORS['green_soft']}; color: #15803D; font-size: 10.5px; font-weight: 800; border: none; border-radius: 8px; padding: 5px 10px; }}
-QPushButton[cls="st_over"]  {{ background: {COLORS['red_soft']}; color: #B91C1C; font-size: 10.5px; font-weight: 800; border: 1px solid #FCA5A5; border-radius: 8px; padding: 5px 10px; }}
+QPushButton[cls="st_done"]  {{ background: {COLORS['green_soft']}; color: {COLORS['good_text']}; font-size: 10.5px; font-weight: 800; border: none; border-radius: 8px; padding: 5px 10px; }}
+QPushButton[cls="st_over"]  {{ background: {COLORS['red_soft']}; color: {COLORS['bad_text']}; font-size: 10.5px; font-weight: 800; border: 1px solid {COLORS['bad_text']}; border-radius: 8px; padding: 5px 10px; }}
 QPushButton[cls="st_over"]:hover  {{ background: #FECACA; }}
-QPushButton[cls="st_soon"]  {{ background: {COLORS['amber_soft']}; color: #B45309; font-size: 10.5px; font-weight: 800; border: none; border-radius: 8px; padding: 5px 10px; }}
+QPushButton[cls="st_soon"]  {{ background: {COLORS['amber_soft']}; color: {COLORS['warn_text']}; font-size: 10.5px; font-weight: 800; border: none; border-radius: 8px; padding: 5px 10px; }}
 QPushButton[cls="st_soon"]:hover  {{ background: #FDE68A; }}
-QPushButton[cls="st_sched"] {{ background: #F1F5F9; color: {COLORS['slate']}; font-size: 10.5px; font-weight: 800; border: none; border-radius: 8px; padding: 5px 10px; }}
+QPushButton[cls="st_sched"] {{ background: {COLORS['surface_alt']}; color: {COLORS['slate']}; font-size: 10.5px; font-weight: 800; border: none; border-radius: 8px; padding: 5px 10px; }}
 QPushButton[cls="st_sched"]:hover {{ background: #E2E8F0; }}
-QLabel[cls="st_none"] {{ color: #CBD5E1; font-weight: 800; }}
+QLabel[cls="st_none"] {{ color: {COLORS['muted']}; font-weight: 800; }}
 
 /* ---------- fichas de máquinas ---------- */
 QFrame[cls="maq-card"] {{
@@ -207,15 +208,16 @@ QWidget[cls="kcard"] {{
     background: {COLORS['surface']}; border: 1px solid {COLORS['line']}; border-radius: 11px;
 }}
 QLabel[cls="kcard_title"] {{ color: {COLORS['ink']}; font-size: 12.5px; font-weight: 700; }}
+QLabel[cls="kcol_title"] {{ color: {COLORS['ink']}; font-size: 13px; font-weight: 800; }}
 QLabel[cls="kanban_count"] {{ background: {COLORS['surface']}; color: {COLORS['muted']}; border: 1px solid {COLORS['line']}; border-radius: 10px; padding: 1px 9px; font-size: 11px; font-weight: 800; }}
-QLabel[cls="sev_Leve"] {{ background: #E0F2FE; color: #0369A1; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 6px; }}
-QLabel[cls="sev_Moderada"] {{ background: {COLORS['amber_soft']}; color: #B45309; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 6px; }}
-QLabel[cls="sev_Crítica"] {{ background: {COLORS['red_soft']}; color: #B91C1C; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 6px; }}
-QLabel[cls="tipo_Mantenimiento"] {{ background: {COLORS['purple_soft']}; color: #6D28D9; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 6px; }}
-QLabel[cls="tipo_Seguridad"] {{ background: {COLORS['red_soft']}; color: #B91C1C; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 6px; }}
+QLabel[cls="sev_Leve"] {{ background: {COLORS['severity_low_bg']}; color: {COLORS['severity_low_text']}; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 6px; }}
+QLabel[cls="sev_Moderada"] {{ background: {COLORS['severity_medium_bg']}; color: {COLORS['severity_medium_text']}; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 6px; }}
+QLabel[cls="sev_Crítica"] {{ background: {COLORS['severity_high_bg']}; color: {COLORS['severity_high_text']}; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 6px; }}
+QLabel[cls="tipo_Mantenimiento"] {{ background: {COLORS['purple_soft']}; color: {COLORS['purple_text']}; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 6px; }}
+QLabel[cls="tipo_Seguridad"] {{ background: {COLORS['severity_high_bg']}; color: {COLORS['severity_high_text']}; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 6px; }}
 QLabel[cls="tipo_Operación"] {{ background: {COLORS['teal_soft']}; color: {COLORS['teal_dark']}; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 6px; }}
 QLabel[cls="dot_ok"] {{ background: {COLORS['green']}; border-radius: 5px; }}
-QLabel[cls="dot_off"] {{ background: #94A3B8; border-radius: 5px; }}
+QLabel[cls="dot_off"] {{ background: {COLORS['muted']}; border-radius: 5px; }}
 QLabel[cls="url"] {{ background: {COLORS['teal_soft']}; color: {COLORS['teal_dark']};
     font-family: Consolas, monospace; font-size: 11.5px; font-weight: 700;
     padding: 6px 10px; border-radius: 8px; }}
