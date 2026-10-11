@@ -159,7 +159,7 @@ class SparkBarras(QWidget):
         for i, v in enumerate(self._datos):
             bh = area_h * v / maximo
             x = 10 + i * ((w - 20) / n) + bw * 0.18
-            p.setBrush(QColor(COLORS["red"]) if i == n - 1 else QColor(13, 148, 136, 200))
+            p.setBrush(QColor(COLORS["red"]) if i == n - 1 else QColor(COLORS["teal"]))
             p.setPen(Qt.PenStyle.NoPen)
             p.drawRoundedRect(QRectF(x, h - 26 - bh, bw * 0.64, max(2.0, bh)), 3, 3)
         p.setPen(QPen(GRIS))
