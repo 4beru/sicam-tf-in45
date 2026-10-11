@@ -4,18 +4,44 @@ from __future__ import annotations
 import sqlite3
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget
 
 from ..core import checklists, iot, plan_tpm, queries
 from .charts import ParetoWidget, TendenciaWidget
 from .theme import COLORS
-from .widgets import Card, Kpi, ResponsiveGrid, tabla, vaciar_layout
+from .widgets import Card, ResponsiveGrid, chip, tabla, vaciar_layout
 
 DER = Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
 
 
 def _num(n: int) -> str:
     return f"{n:,}".replace(",", " ")
+
+
+def _metric_block(titulo: str, valor: str, detalle: str = "", value_cls: str = "summary_value") -> QWidget:
+    """Bloque compacto para componer resúmenes que aprovechan el ancho de una tarjeta."""
+    bloque = QWidget()
+    layout = QVBoxLayout(bloque)
+    layout.setContentsMargins(0, 0, 0, 0)
+    layout.setSpacing(3)
+
+    label = QLabel(titulo)
+    label.setProperty("cls", "summary_label")
+    label.setWordWrap(True)
+    layout.addWidget(label)
+
+    value = QLabel(valor)
+    value.setProperty("cls", value_cls)
+    value.setWordWrap(True)
+    layout.addWidget(value)
+
+    if detalle:
+        caption = QLabel(detalle)
+        caption.setProperty("cls", "summary_detail")
+        caption.setWordWrap(True)
+        layout.addWidget(caption)
+
+    return bloque
 
 
 class DashboardPage(QWidget):
@@ -34,19 +60,11 @@ class DashboardPage(QWidget):
         r = queries.resumen_mes(self.conn)
         mes_et = queries.etiqueta_mes(r["mes"]) if r["mes"] else "—"
 
-        # ---------------- KPIs
+        # ---------------- resumen principal
         en_meta = r["tasa"] <= to_be
-        chips_tasa = []
+        delta = None
         if r.get("tasa_prev") is not None:
             delta = round(r["tasa"] - r["tasa_prev"], 2)
-            if delta < 0:
-                chips_tasa.append((f"▼ {abs(delta):.2f} pts", "good"))
-            elif delta > 0:
-                chips_tasa.append((f"▲ +{delta:.2f} pts", "bad"))
-            else:
-                chips_tasa.append(("= sin cambio", "info"))
-        chips_tasa.append(("✔ en meta" if en_meta else f"meta {to_be}%",
-                           "good" if en_meta else "warn"))
 
         por_proceso = r.get("por_proceso") or []
         proceso_top = por_proceso[0] if por_proceso else ("—", 0)
@@ -58,35 +76,93 @@ class DashboardPage(QWidget):
         plan_r = plan_tpm.resumen(self.conn)
         m_plan = queries.metas(self.conn).get("Cumplimiento del plan TPM", (60, 85))
         en_plan = plan_r["cumplimiento"] >= m_plan[1]
+        alertas_iot = iot.alertas_pendientes(self.conn)
 
-        kpis = [
-            Kpi(f"Tasa NC · {mes_et}", f"{r['tasa']:.2f}%", "trend", chips_tasa,
-                (f"vs mes anterior · As-Is {as_is:.2f} · Meta {to_be:.2f}"
-                 if r.get("tasa_prev") is not None
-                 else f"As-Is {as_is:.2f} · Meta {to_be:.2f}")),
-            Kpi(f"NC · {mes_et}", _num(r["nc"]), "nc",
-                [(f"{proceso_top[0]} · {_num(proceso_top[1])}", "info")] if por_proceso else [],
-                "prendas no conformes"),
-            Kpi("Cumpl. checklist · hoy", f"{cump['pct']:.0f}%", "checklist",
-                [("✔ en meta" if en_cump else f"meta ≥ {m_cump[1]:.0f}%",
-                  "good" if en_cump else "warn")],
-                f"{cump['hechas']} de {cump['total']} estaciones"),
-            Kpi("Cumpl. plan TPM", f"{plan_r['cumplimiento']:.0f}%", "calendar",
-                [("✔ en meta" if en_plan else f"meta ≥ {m_plan[1]:.0f}%",
-                  "good" if en_plan else "warn")],
-                f"{plan_r['vencidas']} vencidas · {plan_r['ejecutadas']} ejecutadas"),
-            Kpi("Causa #1 (Pareto)", f"{causa_top[2]:.1f}%", "alert",
-                [(causa_top[0].split()[0] + "…", "purple")], causa_top[0][:38]),
-            Kpi("Prendas inspeccionadas", _num(r["insp"]), "package",
-                [], "base de cálculo de la tasa NC"),
-            Kpi("Alertas IoT activas", _num(iot.alertas_pendientes(self.conn)), "activity",
-                [("En vivo · simulador", "teal")], "sin atender"),
-        ]
-        grid_kpis = ResponsiveGrid(
-            min_item_width=220, max_columns=4, spacing=12, center_items=True
+        # 1. Calidad: tasa principal y los volúmenes que la explican.
+        calidad = Card("Calidad de producción")
+        calidad.vbox.setContentsMargins(16, 12, 16, 12)
+        calidad.vbox.setSpacing(8)
+        fila_tasa = QHBoxLayout()
+        fila_tasa.setSpacing(14)
+        fila_tasa.addWidget(
+            _metric_block("Tasa de no conformidad", f"{r['tasa']:.2f}%", 
+                          f"As-Is {as_is:.2f}% · Meta {to_be:.2f}%", "summary_primary"),
+            2,
         )
-        grid_kpis.set_items(kpis)
-        self.layout_principal.addWidget(grid_kpis)
+        estado_tasa = QVBoxLayout()
+        estado_tasa.setSpacing(5)
+        if delta is not None:
+            if delta < 0:
+                detalle_delta, tipo_delta = f"▼ {abs(delta):.2f} puntos vs mes anterior", "good"
+            elif delta > 0:
+                detalle_delta, tipo_delta = f"▲ {delta:.2f} puntos vs mes anterior", "bad"
+            else:
+                detalle_delta, tipo_delta = "Sin cambio vs mes anterior", "info"
+            estado_tasa.addWidget(chip(detalle_delta, tipo_delta))
+        estado_tasa.addWidget(chip("En meta" if en_meta else f"Meta {to_be:.2f}%",
+                                   "good" if en_meta else "warn"))
+        estado_tasa.addStretch(1)
+        fila_tasa.addLayout(estado_tasa, 1)
+        calidad.vbox.addLayout(fila_tasa)
+
+        volúmenes = QHBoxLayout()
+        volúmenes.setSpacing(18)
+        volúmenes.addWidget(_metric_block("NC registradas · " + mes_et, _num(r["nc"]),
+                                          f"Proceso con más NC: {proceso_top[0]}"), 1)
+        volúmenes.addWidget(_metric_block("Prendas inspeccionadas", _num(r["insp"]),
+                                          "Base de cálculo de la tasa"), 1)
+        calidad.vbox.addLayout(volúmenes)
+
+        # 2. Cumplimiento: reúne los dos indicadores de ejecución operativa.
+        cumplimiento = Card("Cumplimiento operativo")
+        cumplimiento.vbox.setContentsMargins(16, 12, 16, 12)
+        cumplimiento.vbox.setSpacing(8)
+        metricas_cumplimiento = QHBoxLayout()
+        metricas_cumplimiento.setSpacing(22)
+        chk = QVBoxLayout()
+        chk.setSpacing(4)
+        chk.addWidget(_metric_block("Checklists · hoy", f"{cump['pct']:.0f}%",
+                                    f"{cump['hechas']} de {cump['total']} estaciones",
+                                    "summary_primary"))
+        chk.addWidget(chip("En meta" if en_cump else f"Meta ≥ {m_cump[1]:.0f}%",
+                           "good" if en_cump else "warn"))
+        tpm = QVBoxLayout()
+        tpm.setSpacing(4)
+        tpm.addWidget(_metric_block("Plan TPM", f"{plan_r['cumplimiento']:.0f}%",
+                                    f"{plan_r['vencidas']} vencidas · {plan_r['ejecutadas']} ejecutadas",
+                                    "summary_primary"))
+        tpm.addWidget(chip("En meta" if en_plan else f"Meta ≥ {m_plan[1]:.0f}%",
+                           "good" if en_plan else "warn"))
+        metricas_cumplimiento.addLayout(chk, 1)
+        metricas_cumplimiento.addLayout(tpm, 1)
+        cumplimiento.vbox.addLayout(metricas_cumplimiento)
+
+        # 3. Prioridades: causa dominante, proceso más afectado y alertas activas.
+        prioridades = Card("Focos de atención")
+        prioridades.vbox.setContentsMargins(16, 12, 16, 12)
+        prioridades.vbox.setSpacing(8)
+        prioridades.vbox.addWidget(
+            _metric_block("Causa principal de NC",
+                          f"{causa_top[2]:.1f}% · {causa_top[0]}",
+                          "Principal contribución al Pareto")
+        )
+        fila_prioridades = QHBoxLayout()
+        fila_prioridades.setSpacing(16)
+        fila_prioridades.addWidget(
+            _metric_block("Proceso con más NC", proceso_top[0],
+                          f"{_num(proceso_top[1])} NC del mes"), 1
+        )
+        fila_prioridades.addWidget(
+            _metric_block("Alertas IoT activas", _num(alertas_iot),
+                          "Pendientes de atención"), 1
+        )
+        prioridades.vbox.addLayout(fila_prioridades)
+
+        grid_resumen = ResponsiveGrid(
+            min_item_width=340, max_columns=3, spacing=14
+        )
+        grid_resumen.set_items([calidad, cumplimiento, prioridades])
+        self.layout_principal.addWidget(grid_resumen)
 
         # ---------------- gráficos adaptables
         c1 = Card("Pareto de causas de no conformidad")
