@@ -97,7 +97,7 @@ class DashboardPage(QWidget):
             elif delta > 0:
                 detalle_delta, tipo_delta = f"▲ {delta:.2f} pts vs ant.", "bad"
             else:
-                detalle_delta, tipo_delta = "Sin cambio vs mes anterior", "info"
+                detalle_delta, tipo_delta = "Sin cambio", "info"
             estado_tasa.addWidget(chip(detalle_delta, tipo_delta))
         estado_tasa.addWidget(chip("En meta" if en_meta else f"Meta {to_be:.2f}%",
                                    "good" if en_meta else "warn"))
