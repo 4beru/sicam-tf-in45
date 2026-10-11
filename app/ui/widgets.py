@@ -145,7 +145,7 @@ class Kpi(QFrame):
         self.setMinimumWidth(220)
         self.setMaximumWidth(290)
         self.setMinimumHeight(126)
-        self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+        self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
         v = QVBoxLayout(self)
         v.setContentsMargins(12, 9, 12, 9)
         v.setSpacing(3)
