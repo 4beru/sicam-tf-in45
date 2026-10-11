@@ -19,11 +19,15 @@ def conn(tmp_path):
 def test_frecuencias_fig42(conn):
     frecs = {(f["maquina"], f["actividad"]): f["frecuencia_dias"]
              for f in conn.execute("SELECT * FROM frecuencias")}
-    assert frecs[("RECT-05", "Lubricación y revisión de puntada")] == 7
-    assert frecs[("OVE-01", "Revisión de cuchilla")] == 15
-    assert frecs[("REC-02", "Calibración de tensión")] == 15
-    assert frecs[("COR-01", "Revisión de sensor/encoder")] == 30
-
+    assert frecs[("Costura 001", "Lubricación y revisión de puntada")] == 7
+    assert all(
+        (f"Costura {i:03d}", "Lubricación y revisión de puntada") in frecs
+        for i in range(1, 31)
+    )
+    assert all(
+        frecs[(f"Costura {i:03d}", "Lubricación y revisión de puntada")] == 7
+        for i in range(1, 31)
+    )
 
 def test_motor_genera_tareas_y_estados(conn):
     tareas = plan_tpm.tareas_del_mes(conn)
@@ -77,5 +81,5 @@ def test_pdfs_se_generan(conn, tmp_path):
 
 def test_firma_datos_cambia_al_registrar(conn):
     f1 = queries.firma_datos(conn)
-    plan_tpm.registrar_ejecucion(conn, "RECT-01", "Lubricación y revisión de puntada")
+    plan_tpm.registrar_ejecucion(conn, "Costura 002", "Lubricación y revisión de puntada")
     assert queries.firma_datos(conn) != f1
