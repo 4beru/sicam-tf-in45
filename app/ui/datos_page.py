@@ -238,8 +238,44 @@ class DatosPage(QWidget):
         )
         if confirmacion != QMessageBox.StandardButton.Yes:
             return
-        seed.siembra(self.conn, reset=True)
-        resultado = integridad.auditar_y_reparar(self.conn)
+        fotos_a_eliminar = [
+            Path(fila["foto"]) for fila in self.conn.execute(
+                "SELECT foto FROM checklist_items WHERE foto IS NOT NULL AND foto != ''"
+            )
+        ]
+        copia = sqlite3.connect(":memory:")
+        try:
+            self.conn.backup(copia)
+            seed.siembra(self.conn, reset=True)
+            resultado = integridad.auditar_y_reparar(self.conn)
+            if resultado["integridad_sqlite"] != "ok" or resultado["problemas"]:
+                detalle = "\\n".join(resultado["problemas"])
+                raise RuntimeError(
+                    "El conjunto regenerado no superó la auditoría. " + detalle
+                )
+        except Exception as exc:
+            self.conn.rollback()
+            copia.backup(self.conn)
+            self.conn.commit()
+            QMessageBox.critical(
+                self, "No se pudo restablecer el piloto",
+                "El restablecimiento falló y SICAM recuperó la copia previa de la base de datos.\\n\\n"
+                f"Detalle: {exc}",
+            )
+            return
+        finally:
+            copia.close()
+
+        # Limpiar evidencia únicamente después de validar la base regenerada.
+        carpeta_fotos = (db.ruta_data() / "fotos").resolve()
+        for foto in fotos_a_eliminar:
+            try:
+                ruta = foto.resolve()
+                if ruta.is_relative_to(carpeta_fotos) and ruta.is_file():
+                    ruta.unlink()
+            except OSError:
+                continue
+
         self.shell._firma = queries.firma_datos(self.conn)
         self.shell.toast("Datos piloto restaurados y auditados")
         if resultado["problemas"]:
