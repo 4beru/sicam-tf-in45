@@ -37,7 +37,7 @@ def _cls(widget, nombre: str):
 
 
 class Card(QFrame):
-    """Tarjeta blanca con título opcional y etiqueta de referencia (p. ej. 'Tabla 6')."""
+    """Tarjeta blanca con título opcional."""
 
     def __init__(self, titulo: str = "", ref: str = "", parent=None):
         super().__init__(parent)
@@ -45,18 +45,10 @@ class Card(QFrame):
         self.vbox = QVBoxLayout(self)
         self.vbox.setContentsMargins(16, 14, 16, 14)
         self.vbox.setSpacing(10)
-        if titulo or ref:
-            fila = QHBoxLayout()
-            if titulo:
-                t = QLabel(titulo)
-                _cls(t, "card_title")
-                fila.addWidget(t)
-            fila.addStretch(1)
-            if ref:
-                r = QLabel(ref)
-                _cls(r, "ref")
-                fila.addWidget(r)
-            self.vbox.addLayout(fila)
+        if titulo:
+            t = QLabel(titulo)
+            _cls(t, "card_title")
+            self.vbox.addWidget(t)
 
     def cuerpo(self) -> QVBoxLayout:
         return self.vbox
