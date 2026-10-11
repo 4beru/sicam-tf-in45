@@ -53,7 +53,7 @@ class IotPage(QWidget):
         super().__init__()
         self.conn = conn
         self.shell = shell
-        self._maquina_actual = "RECT-05"
+        self._maquina_actual = "Costura 001"
 
         v = QVBoxLayout(self)
         v.setContentsMargins(0, 0, 0, 0)
@@ -114,7 +114,7 @@ class IotPage(QWidget):
         self.combo_maquinas = QComboBox()
         for r in self.conn.execute("SELECT codigo FROM maquinas ORDER BY codigo"):
             self.combo_maquinas.addItem(r["codigo"])
-        idx = self.combo_maquinas.findText("RECT-05")
+        idx = self.combo_maquinas.findText("Costura 001")
         if idx >= 0:
             self.combo_maquinas.setCurrentIndex(idx)
         self._maquina_actual = self.combo_maquinas.currentText()
