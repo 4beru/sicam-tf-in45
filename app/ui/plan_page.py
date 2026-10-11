@@ -105,7 +105,7 @@ class PlanPage(QWidget):
         cv = QVBoxLayout(cumple)
         cv.setContentsMargins(0, 0, 0, 0)
         lbl = QLabel(f"Cumplimiento: <b>{r['cumplimiento']:.0f}%</b> "
-                     f"<span style='color:#64748B'>(meta ≥ 85%)</span>")
+                     f"<span style='color:{COLORS['muted']}'>(meta ≥ 85%)</span>")
         lbl.setTextFormat(Qt.TextFormat.RichText)
         # barra de cumplimiento: gradiente truncado al % (QSS no admite anchos en %)
         color = (COLORS["teal"] if r["cumplimiento"] >= 85 else COLORS["amber"])
