@@ -62,9 +62,10 @@ def test_auditoria_detecta_desajuste_entre_produccion_y_nc(conn):
     with conn:
         conn.execute(
             "UPDATE produccion SET nc_detectadas = nc_detectadas + 1 "
+            "WHERE id = (SELECT id FROM produccion "
             "WHERE fecha BETWEEN '2026-08-01' AND '2026-08-31' "
             "AND proceso = 'Costura' AND origen_dato = 'semilla' "
-            "AND turno = 'Mañana' LIMIT 1"
+            "AND turno = 'Mañana' LIMIT 1)"
         )
     resultado = integridad.auditar_y_reparar(conn)
     assert any("Producción y no conformidades de la semilla no coinciden" in x
